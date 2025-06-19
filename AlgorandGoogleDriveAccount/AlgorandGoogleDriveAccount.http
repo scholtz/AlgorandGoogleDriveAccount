@@ -1,0 +1,6 @@
+@AlgorandGoogleDriveAccount_HostAddress = http://localhost:5110
+
+GET {{AlgorandGoogleDriveAccount_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
