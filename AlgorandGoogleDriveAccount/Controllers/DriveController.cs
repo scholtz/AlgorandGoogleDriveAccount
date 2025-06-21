@@ -1,67 +1,132 @@
+using Algorand;
+using Algorand.Algod.Model.Transactions;
+using AlgorandGoogleDriveAccount.Repository;
 using Google.Apis.Auth.AspNetCore3;
-using Google.Apis.Drive.v3;
-using Google.Apis.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.IO;
-using System.Threading.Tasks;
+using Org.BouncyCastle.Crypto.Parameters;
+using System.Security.Claims;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/drive")]
 public class DriveController : ControllerBase
 {
-    private readonly IGoogleAuthProvider _auth;
+    private readonly GoogleDriveRepository _googleDriveRepository;
+    private readonly ILogger<DriveController> _logger;
 
-    public DriveController(IGoogleAuthProvider auth)
+    public DriveController(
+        GoogleDriveRepository googleDriveRepository,
+        ILogger<DriveController> logger
+        )
     {
-        _auth = auth;
+        _googleDriveRepository = googleDriveRepository;
+        _logger = logger;
+    }
+    /// <summary>
+    /// sign unsigned transaction, or combine signed multisig transaction with the account's private key
+    /// </summary>
+    /// <returns></returns>
+    [Authorize]
+    [HttpPost("sign")]
+    public async Task<ActionResult<byte[]>> Sign([FromForm] byte[] txMsgPack)
+    {
+        var messagePack = new byte[0];
+        try
+        {
+            try
+            {
+                var signedTxObj = Algorand.Utils.Encoder.DecodeFromMsgPack<SignedTransaction>(txMsgPack) ?? throw new Exception("Error in signedTxBytes");
+                if (signedTxObj.MSig == null)
+                {
+                    // signed basic tx
+                    throw new Exception("Signed transaction is not a multisig transaction.");
+                }
+                else
+                {
+                    // signed msig tx
+
+                    var email = User.FindFirst(ClaimTypes.Email)?.Value;
+                    if (string.IsNullOrEmpty(email)) throw new Exception("Email not found in claims. Please login first.");
+                    var account = await _googleDriveRepository.LoadAccount(email, 0);
+
+                    var address = account.Address.EncodeAsString();
+                    _logger?.LogInformation($"PasswordAccountSignMsig:{address}");
+
+                    var msig = new MultisigAddress(signedTxObj.MSig.Version, signedTxObj.MSig.Threshold, new List<Ed25519PublicKeyParameters>(signedTxObj.MSig.Subsigs.Select(s => s.key)));
+                    var signed = signedTxObj.Tx.Sign(msig, account);
+
+                    messagePack = Algorand.Utils.Encoder.EncodeToMsgPackOrdered(signed);
+                }
+            }
+            catch (Exception exc)
+            {
+                _logger?.LogDebug(exc, "Failed to decode signed transaction from MsgPack.");
+                var txObj = Algorand.Utils.Encoder.DecodeFromMsgPack<Transaction>(txMsgPack) ?? throw new Exception("Unable to parse data as Transaction nor SignedTransaction");
+                // usinged tx
+
+                var email = User.FindFirst(ClaimTypes.Email)?.Value;
+                if (string.IsNullOrEmpty(email)) throw new Exception("Email not found in claims. Please login first.");
+                var account = await _googleDriveRepository.LoadAccount(email, 0);
+
+                var address = account.Address.EncodeAsString();
+                _logger?.LogInformation($"PasswordAccountSignMsig:{address}");
+                var signed = txObj.Sign(account);
+                messagePack = Algorand.Utils.Encoder.EncodeToMsgPackOrdered(signed);
+            }
+
+            return Ok(messagePack);
+        }
+        catch (Exception exc)
+        {
+            _logger?.LogError(exc.Message);
+            return BadRequest(new ProblemDetails() { Detail = exc.Message });
+        }
     }
 
-    [HttpGet("file")]
-    public async Task<IActionResult> GetFile([FromQuery] string fileId)
+
+    /// <summary>
+    /// sign unsigned transaction, or combine signed multisig transaction with the account's private key
+    /// </summary>
+    /// <returns></returns>
+    [Authorize]
+    [HttpGet("address")]
+    public async Task<ActionResult<string>> GetAddress()
     {
-        var cred = await _auth.GetCredentialAsync();
-
-        var service = new DriveService(new BaseClientService.Initializer
+        try
         {
-            HttpClientInitializer = cred,
-            ApplicationName = "MyDriveApp"
-        });
-
-        var request = service.Files.Get(fileId);
-        var stream = new MemoryStream();
-        request.MediaDownloader.ProgressChanged += progress =>
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email)) throw new Exception("Email not found in claims. Please login first.");
+            var account = await _googleDriveRepository.LoadAccount(email, 0);
+            var address = account.Address.EncodeAsString();
+            return Ok(address);
+        }
+        catch (Exception exc)
         {
-            // Optional: log download progress
-        };
-
-        await request.DownloadAsync(stream);
-        stream.Position = 0;
-
-        var file = await request.ExecuteAsync();
-
-        return File(stream, file.MimeType, file.Name);
+            _logger?.LogError(exc.Message);
+            return BadRequest(new ProblemDetails() { Detail = exc.Message });
+        }
     }
 
     [AllowAnonymous]
     [HttpGet("login")]
-    public IActionResult Login()
+    public IActionResult Login(string redirectUri = "https://localhost:44305/swagger/")
     {
         return Challenge(new AuthenticationProperties
         {
-            RedirectUri = "https://localhost:44305/swagger/"
+            RedirectUri = redirectUri
         }, GoogleOpenIdConnectDefaults.AuthenticationScheme);
     }
 
+    [Authorize]
     [HttpGet("logout")]
-    public IActionResult Logout()
+    public IActionResult Logout(string redirectUri = "https://localhost:44305/swagger/")
     {
         return SignOut(new AuthenticationProperties
         {
-            RedirectUri = "https://localhost:44305/swagger"
+            RedirectUri = redirectUri
         }, CookieAuthenticationDefaults.AuthenticationScheme);
     }
 }

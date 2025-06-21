@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Algorand4" Version="4.0.3.2025051817" />
+    <PackageReference Include="AlgorandARC76Account" Version="1.0.2" />
     <PackageReference Include="Google.Apis.Auth" Version="1.70.0" />
     <PackageReference Include="Google.Apis.Auth.AspNetCore3" Version="1.70.0" />
     <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3783" />

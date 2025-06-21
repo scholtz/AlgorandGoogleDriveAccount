@@ -1,8 +1,11 @@
 
 using AlgorandGoogleDriveAccount.Model;
+using AlgorandGoogleDriveAccount.Repository;
 using Google.Apis.Auth.AspNetCore3;
 using Google.Apis.Drive.v3;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
 
 namespace AlgorandGoogleDriveAccount
 {
@@ -18,9 +21,13 @@ namespace AlgorandGoogleDriveAccount
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddProblemDetails();
 
             var config = new Configuration();
             builder.Configuration.GetSection("App").Bind(config);
+            builder.Services.Configure<Model.Configuration>(builder.Configuration.GetSection("App"));
+            builder.Services.Configure<AesOptions>(builder.Configuration.GetSection("AesOptions"));
+            builder.Services.AddSingleton<GoogleDriveRepository>();
 
             builder.Services
                 .AddAuthentication(options =>
@@ -33,7 +40,9 @@ namespace AlgorandGoogleDriveAccount
                 {
                     options.ClientId = config.ClientId;
                     options.ClientSecret = config.ClientSecret;
-                    options.Scope.Add(DriveService.Scope.DriveReadonly);
+                    options.Scope.Add("email");
+                    options.Scope.Add(DriveService.Scope.DriveFile);
+                    options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
                 });
 
             builder.Services.AddControllersWithViews();
