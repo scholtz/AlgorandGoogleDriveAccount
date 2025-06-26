@@ -25,6 +25,7 @@ public class DriveController : ControllerBase
         _googleDriveRepository = googleDriveRepository;
         _logger = logger;
     }
+
     /// <summary>
     /// sign unsigned transaction, or combine signed multisig transaction with the account's private key
     /// </summary>
@@ -86,6 +87,30 @@ public class DriveController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Get the current user's access token for use with MCP server
+    /// </summary>
+    /// <returns>Access token for Google Drive API</returns>
+    [Authorize]
+    [HttpGet("access-token")]
+    public async Task<ActionResult<string>> GetAccessToken()
+    {
+        try
+        {
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                return BadRequest(new ProblemDetails() { Detail = "No access token found. Please login first." });
+            }
+            
+            return Ok(accessToken);
+        }
+        catch (Exception exc)
+        {
+            _logger?.LogError(exc, "Error retrieving access token");
+            return BadRequest(new ProblemDetails() { Detail = exc.Message });
+        }
+    }
 
     /// <summary>
     /// sign unsigned transaction, or combine signed multisig transaction with the account's private key

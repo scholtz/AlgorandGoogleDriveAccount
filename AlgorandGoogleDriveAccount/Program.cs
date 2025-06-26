@@ -1,4 +1,4 @@
-
+using AlgorandGoogleDriveAccount.MCP;
 using AlgorandGoogleDriveAccount.Model;
 using AlgorandGoogleDriveAccount.Repository;
 using Google.Apis.Auth.AspNetCore3;
@@ -46,6 +46,13 @@ namespace AlgorandGoogleDriveAccount
                 });
 
             builder.Services.AddControllersWithViews();
+
+
+            // Configure MCP Server
+            builder.Services.AddMcpServer()
+                .WithHttpTransport()
+                .WithTools<LoadFile>();
+
             var app = builder.Build();
 
             app.UseSwagger();
@@ -58,6 +65,7 @@ namespace AlgorandGoogleDriveAccount
 
 
             app.MapControllers();
+            app.MapMcp("/mcp");
 
             app.Run();
         }
