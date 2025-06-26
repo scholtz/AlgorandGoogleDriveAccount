@@ -69,8 +69,6 @@ namespace AlgorandGoogleDriveAccount
             app.UseSwagger();
             app.UseSwaggerUI();
 
-            app.UseHttpsRedirection();
-
             // Enable static files
             app.UseStaticFiles();
 
