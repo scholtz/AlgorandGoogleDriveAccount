@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Pairing Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4285f4;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .info-box {
+            background-color: #e8f4fd;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .error-box {
+            background-color: #ffebee;
+            border: 1px solid #ffcdd2;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            color: #c62828;
+        }
+        .success-box {
+            background-color: #e8f5e8;
+            border: 1px solid #c8e6c9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            color: #2e7d32;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Device Pairing Demo</h1>
+        <p>This demo shows how to pair a device with Google Drive authentication and retrieve access tokens.</p>
+
+        <div class="form-group">
+            <label for="sessionId">Session ID:</label>
+            <input type="text" id="sessionId" placeholder="Enter a unique session ID for your device">
+        </div>
+
+        <div class="form-group">
+            <label for="deviceName">Device Name (Optional):</label>
+            <input type="text" id="deviceName" placeholder="e.g., My Desktop, Mobile App, etc.">
+        </div>
+
+        <button onclick="pairDevice()">Pair Device</button>
+        <button onclick="getAccessToken()" id="getTokenBtn" disabled>Get Access Token</button>
+        <button onclick="getDeviceInfo()" id="getInfoBtn" disabled>Get Device Info</button>
+        <button onclick="unpairDevice()" id="unpairBtn" disabled>Unpair Device</button>
+
+        <div id="result"></div>
+
+        <div class="info-box">
+            <h3>How it works:</h3>
+            <ol>
+                <li>Enter a unique Session ID for your device</li>
+                <li>Optionally provide a device name for identification</li>
+                <li>Click "Pair Device" to start the Google OAuth flow</li>
+                <li>After successful authentication, the access token will be stored in Redis with 1-day expiration</li>
+                <li>Use the session ID to retrieve the access token later</li>
+            </ol>
+        </div>
+
+        <div class="info-box">
+            <h3>API Endpoints:</h3>
+            <ul>
+                <li><strong>GET /api/device/pair-device</strong> - Start device pairing process</li>
+                <li><strong>GET /api/device/paired-device</strong> - OAuth callback endpoint</li>
+                <li><strong>GET /api/device/access-token/{sessionId}</strong> - Get access token for paired device</li>
+                <li><strong>GET /api/device/info/{sessionId}</strong> - Get device information</li>
+                <li><strong>DELETE /api/device/unpair/{sessionId}</strong> - Unpair device</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let currentSessionId = '';
+
+        function generateSessionId() {
+            return 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function showResult(content, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            const className = type === 'error' ? 'error-box' : (type === 'success' ? 'success-box' : 'info-box');
+            resultDiv.innerHTML = `<div class="${className}">${content}</div>`;
+        }
+
+        function enableButtons() {
+            document.getElementById('getTokenBtn').disabled = false;
+            document.getElementById('getInfoBtn').disabled = false;
+            document.getElementById('unpairBtn').disabled = false;
+        }
+
+        function disableButtons() {
+            document.getElementById('getTokenBtn').disabled = true;
+            document.getElementById('getInfoBtn').disabled = true;
+            document.getElementById('unpairBtn').disabled = true;
+        }
+
+        function pairDevice() {
+            let sessionId = document.getElementById('sessionId').value.trim();
+            const deviceName = document.getElementById('deviceName').value.trim() || 'Demo Device';
+
+            if (!sessionId) {
+                sessionId = generateSessionId();
+                document.getElementById('sessionId').value = sessionId;
+                showResult(`Generated Session ID: ${sessionId}`, 'info');
+            }
+
+            currentSessionId = sessionId;
+            
+            const pairUrl = `/api/device/pair-device?sessionId=${encodeURIComponent(sessionId)}&deviceName=${encodeURIComponent(deviceName)}`;
+            window.location.href = pairUrl;
+        }
+
+        async function getAccessToken() {
+            if (!currentSessionId) {
+                currentSessionId = document.getElementById('sessionId').value.trim();
+            }
+
+            if (!currentSessionId) {
+                showResult('Please enter a session ID first.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/device/access-token/${encodeURIComponent(currentSessionId)}`);
+                
+                if (response.ok) {
+                    const token = await response.text();
+                    showResult(`<h4>Access Token Retrieved:</h4><pre>${token}</pre><p><strong>Note:</strong> This token can be used with the MCP LoadFile tool or Google Drive API directly.</p>`, 'success');
+                } else {
+                    const error = await response.text();
+                    showResult(`Error: ${error}`, 'error');
+                    if (response.status === 404) {
+                        disableButtons();
+                    }
+                }
+            } catch (error) {
+                showResult(`Network error: ${error.message}`, 'error');
+            }
+        }
+
+        async function getDeviceInfo() {
+            if (!currentSessionId) {
+                currentSessionId = document.getElementById('sessionId').value.trim();
+            }
+
+            if (!currentSessionId) {
+                showResult('Please enter a session ID first.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/device/info/${encodeURIComponent(currentSessionId)}`);
+                
+                if (response.ok) {
+                    const info = await response.json();
+                    showResult(`<h4>Device Information:</h4><pre>${JSON.stringify(info, null, 2)}</pre>`, 'info');
+                } else {
+                    const error = await response.text();
+                    showResult(`Error: ${error}`, 'error');
+                    if (response.status === 404) {
+                        disableButtons();
+                    }
+                }
+            } catch (error) {
+                showResult(`Network error: ${error.message}`, 'error');
+            }
+        }
+
+        async function unpairDevice() {
+            if (!currentSessionId) {
+                currentSessionId = document.getElementById('sessionId').value.trim();
+            }
+
+            if (!currentSessionId) {
+                showResult('Please enter a session ID first.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/device/unpair/${encodeURIComponent(currentSessionId)}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showResult(`<h4>Device Unpaired:</h4><p>${result.message}</p>`, 'success');
+                    disableButtons();
+                    currentSessionId = '';
+                } else {
+                    const error = await response.text();
+                    showResult(`Error: ${error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`Network error: ${error.message}`, 'error');
+            }
+        }
+
+        // Check if we're returning from OAuth flow
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('sessionId');
+            
+            if (sessionId) {
+                document.getElementById('sessionId').value = sessionId;
+                currentSessionId = sessionId;
+                enableButtons();
+                showResult('Device pairing completed successfully! You can now use the buttons below to interact with the paired device.', 'success');
+                
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        };
+    </script>
+</body>
+</html>

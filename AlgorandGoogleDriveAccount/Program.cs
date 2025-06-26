@@ -27,7 +27,16 @@ namespace AlgorandGoogleDriveAccount
             builder.Configuration.GetSection("App").Bind(config);
             builder.Services.Configure<Model.Configuration>(builder.Configuration.GetSection("App"));
             builder.Services.Configure<AesOptions>(builder.Configuration.GetSection("AesOptions"));
+            builder.Services.Configure<RedisConfiguration>(builder.Configuration.GetSection("Redis"));
             builder.Services.AddSingleton<GoogleDriveRepository>();
+
+            // Add Redis distributed cache
+            var redisConfig = new RedisConfiguration();
+            builder.Configuration.GetSection("Redis").Bind(redisConfig);
+            builder.Services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConfig.ConnectionString;
+            });
 
             builder.Services
                 .AddAuthentication(options =>
@@ -59,6 +68,9 @@ namespace AlgorandGoogleDriveAccount
             app.UseSwaggerUI();
 
             app.UseHttpsRedirection();
+
+            // Enable static files
+            app.UseStaticFiles();
 
             app.UseAuthentication();
             app.UseAuthorization();
