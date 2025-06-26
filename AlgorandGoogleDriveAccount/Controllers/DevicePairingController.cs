@@ -1,11 +1,10 @@
+using AlgorandGoogleDriveAccount.BusinessLogic;
 using AlgorandGoogleDriveAccount.Model;
 using Google.Apis.Auth.AspNetCore3;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Distributed;
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace AlgorandGoogleDriveAccount.Controllers
 {
@@ -13,15 +12,14 @@ namespace AlgorandGoogleDriveAccount.Controllers
     [Route("api/device")]
     public class DevicePairingController : ControllerBase
     {
-        private readonly IDistributedCache _cache;
+        private readonly IDevicePairingService _devicePairingService;
         private readonly ILogger<DevicePairingController> _logger;
-        private const int CacheExpirationDays = 1;
 
         public DevicePairingController(
-            IDistributedCache cache,
+            IDevicePairingService devicePairingService,
             ILogger<DevicePairingController> logger)
         {
-            _cache = cache;
+            _devicePairingService = devicePairingService;
             _logger = logger;
         }
 
@@ -48,42 +46,29 @@ namespace AlgorandGoogleDriveAccount.Controllers
         [HttpGet("pair-device")]
         public async Task<IActionResult> PairDevice(string sessionId, string deviceName = "Unknown Device")
         {
-            if (string.IsNullOrEmpty(sessionId))
+            try
+            {
+                await _devicePairingService.InitiatePairingAsync(sessionId, deviceName);
+
+                var redirectUri = Url.Action("PairedDevice", "DevicePairing", new { sessionId }, Request.Scheme);
+                
+                return Challenge(new AuthenticationProperties
+                {
+                    RedirectUri = redirectUri,
+                    Items = 
+                    {
+                        ["sessionId"] = sessionId,
+                        ["deviceName"] = deviceName
+                    }
+                }, GoogleOpenIdConnectDefaults.AuthenticationScheme);
+            }
+            catch (ArgumentException ex)
             {
                 return BadRequest(new ProblemDetails 
                 { 
-                    Detail = "Session ID is required for device pairing" 
+                    Detail = ex.Message 
                 });
             }
-
-            // Store the session info temporarily for the callback
-            var tempSessionData = new
-            {
-                SessionId = sessionId,
-                DeviceName = deviceName,
-                InitiatedAt = DateTime.UtcNow
-            };
-
-            // Store in cache temporarily (5 minutes should be enough for OAuth flow)
-            var tempKey = $"temp_session:{sessionId}";
-            var options = new DistributedCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
-            };
-
-            await _cache.SetStringAsync(tempKey, JsonSerializer.Serialize(tempSessionData), options);
-
-            var redirectUri = Url.Action("PairedDevice", "DevicePairing", new { sessionId }, Request.Scheme);
-            
-            return Challenge(new AuthenticationProperties
-            {
-                RedirectUri = redirectUri,
-                Items = 
-                {
-                    ["sessionId"] = sessionId,
-                    ["deviceName"] = deviceName
-                }
-            }, GoogleOpenIdConnectDefaults.AuthenticationScheme);
         }
 
         /// <summary>
@@ -96,99 +81,20 @@ namespace AlgorandGoogleDriveAccount.Controllers
         [HttpGet("paired-device")]
         public async Task<ActionResult<DevicePairingResponse>> PairedDevice(string sessionId)
         {
-            try
+            // Get user info and tokens
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            var refreshToken = await HttpContext.GetTokenAsync("refresh_token");
+
+            var result = await _devicePairingService.ProcessPairingCallbackAsync(sessionId, email!, accessToken!, refreshToken);
+
+            if (!result.Success)
             {
-                if (string.IsNullOrEmpty(sessionId))
-                {
-                    return BadRequest(new DevicePairingResponse
-                    {
-                        Success = false,
-                        Message = "Session ID is required"
-                    });
-                }
-
-                // Get temporary session data
-                var tempKey = $"temp_session:{sessionId}";
-                var tempDataJson = await _cache.GetStringAsync(tempKey);
-                
-                if (string.IsNullOrEmpty(tempDataJson))
-                {
-                    return BadRequest(new DevicePairingResponse
-                    {
-                        Success = false,
-                        Message = "Session not found or expired. Please initiate pairing again."
-                    });
-                }
-
-                var tempData = JsonSerializer.Deserialize<JsonElement>(tempDataJson);
-                
-                // Get user info and tokens
-                var email = User.FindFirst(ClaimTypes.Email)?.Value;
-                if (string.IsNullOrEmpty(email))
-                {
-                    return BadRequest(new DevicePairingResponse
-                    {
-                        Success = false,
-                        Message = "Email not found in claims. Authentication failed."
-                    });
-                }
-
-                var accessToken = await HttpContext.GetTokenAsync("access_token");
-                var refreshToken = await HttpContext.GetTokenAsync("refresh_token");
-
-                if (string.IsNullOrEmpty(accessToken))
-                {
-                    return BadRequest(new DevicePairingResponse
-                    {
-                        Success = false,
-                        Message = "No access token found. Authentication failed."
-                    });
-                }
-
-                // Extract device name from temp data
-                var deviceName = "Unknown Device";
-                if (tempData.TryGetProperty("DeviceName", out var deviceNameElement))
-                {
-                    deviceName = deviceNameElement.GetString() ?? "Unknown Device";
-                }
-
-                // Create device info
-                var deviceInfo = new PairedDeviceInfo
-                {
-                    AccessToken = accessToken,
-                    RefreshToken = refreshToken ?? string.Empty,
-                    Email = email,
-                    DeviceName = deviceName,
-                    PairedAt = DateTime.UtcNow,
-                    ExpiresAt = DateTime.UtcNow.AddDays(CacheExpirationDays)
-                };
-
-                // Store in Redis with 1-day expiration
-                var cacheKey = $"device_session:{sessionId}";
-                var cacheOptions = new DistributedCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(CacheExpirationDays)
-                };
-
-                await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(deviceInfo), cacheOptions);
-
-                // Clean up temporary session data
-                await _cache.RemoveAsync(tempKey);
-
-                _logger.LogInformation($"Device paired successfully. SessionId: {sessionId}, Email: {email}");
-
-                // Redirect to demo page with success message
-                return Redirect($"/api/device/demo?sessionId={sessionId}");
+                return BadRequest(result);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error pairing device with session ID: {sessionId}");
-                return StatusCode(500, new DevicePairingResponse
-                {
-                    Success = false,
-                    Message = "An error occurred while pairing the device"
-                });
-            }
+
+            // Redirect to demo page with success message
+            return Redirect($"/api/device/demo?sessionId={sessionId}");
         }
 
         /// <summary>
@@ -202,18 +108,9 @@ namespace AlgorandGoogleDriveAccount.Controllers
         {
             try
             {
-                if (string.IsNullOrEmpty(sessionId))
-                {
-                    return BadRequest(new ProblemDetails 
-                    { 
-                        Detail = "Session ID is required" 
-                    });
-                }
+                var accessToken = await _devicePairingService.GetDeviceAccessTokenAsync(sessionId);
 
-                var cacheKey = $"device_session:{sessionId}";
-                var deviceInfoJson = await _cache.GetStringAsync(cacheKey);
-
-                if (string.IsNullOrEmpty(deviceInfoJson))
+                if (accessToken == null)
                 {
                     return NotFound(new ProblemDetails 
                     { 
@@ -221,27 +118,14 @@ namespace AlgorandGoogleDriveAccount.Controllers
                     });
                 }
 
-                var deviceInfo = JsonSerializer.Deserialize<PairedDeviceInfo>(deviceInfoJson);
-                
-                if (deviceInfo == null)
-                {
-                    return NotFound(new ProblemDetails 
-                    { 
-                        Detail = "Invalid device information. Please pair the device again." 
-                    });
-                }
-
-                // Check if token is expired
-                if (DateTime.UtcNow > deviceInfo.ExpiresAt)
-                {
-                    await _cache.RemoveAsync(cacheKey);
-                    return NotFound(new ProblemDetails 
-                    { 
-                        Detail = "Device session expired. Please pair the device again." 
-                    });
-                }
-
-                return Ok(deviceInfo.AccessToken);
+                return Ok(accessToken);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ProblemDetails 
+                { 
+                    Detail = ex.Message 
+                });
             }
             catch (Exception ex)
             {
@@ -264,18 +148,9 @@ namespace AlgorandGoogleDriveAccount.Controllers
         {
             try
             {
-                if (string.IsNullOrEmpty(sessionId))
-                {
-                    return BadRequest(new ProblemDetails 
-                    { 
-                        Detail = "Session ID is required" 
-                    });
-                }
+                var deviceInfo = await _devicePairingService.GetDeviceInfoAsync(sessionId);
 
-                var cacheKey = $"device_session:{sessionId}";
-                var deviceInfoJson = await _cache.GetStringAsync(cacheKey);
-
-                if (string.IsNullOrEmpty(deviceInfoJson))
+                if (deviceInfo == null)
                 {
                     return NotFound(new ProblemDetails 
                     { 
@@ -283,46 +158,22 @@ namespace AlgorandGoogleDriveAccount.Controllers
                     });
                 }
 
-                var deviceInfo = JsonSerializer.Deserialize<PairedDeviceInfo>(deviceInfoJson);
-                
-                if (deviceInfo == null)
-                {
-                    return NotFound(new ProblemDetails 
-                    { 
-                        Detail = "Invalid device information" 
-                    });
-                }
-
-                // Check if token is expired
-                if (DateTime.UtcNow > deviceInfo.ExpiresAt)
-                {
-                    await _cache.RemoveAsync(cacheKey);
-                    return NotFound(new ProblemDetails 
-                    { 
-                        Detail = "Device session expired" 
-                    });
-                }
-
-                // Don't return sensitive tokens in info endpoint
-                var safeDeviceInfo = new PairedDeviceInfo
-                {
-                    AccessToken = "***", // Hide for security
-                    RefreshToken = "***", // Hide for security
-                    Email = deviceInfo.Email,
-                    DeviceName = deviceInfo.DeviceName,
-                    PairedAt = deviceInfo.PairedAt,
-                    ExpiresAt = deviceInfo.ExpiresAt
-                };
-
-                return Ok(safeDeviceInfo);
+                return Ok(deviceInfo);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new ProblemDetails 
+                { 
+                    Detail = ex.Message 
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error retrieving device info for session ID: {sessionId}");
                 return StatusCode(500, new ProblemDetails 
-                    { 
-                        Detail = "An error occurred while retrieving device information" 
-                    });
+                { 
+                    Detail = "An error occurred while retrieving device information" 
+                });
             }
         }
 
@@ -335,38 +186,18 @@ namespace AlgorandGoogleDriveAccount.Controllers
         [HttpDelete("unpair/{sessionId}")]
         public async Task<ActionResult<DevicePairingResponse>> UnpairDevice(string sessionId)
         {
-            try
+            var result = await _devicePairingService.UnpairDeviceAsync(sessionId);
+
+            if (!result.Success)
             {
-                if (string.IsNullOrEmpty(sessionId))
+                if (result.Message.Contains("required"))
                 {
-                    return BadRequest(new DevicePairingResponse
-                    {
-                        Success = false,
-                        Message = "Session ID is required"
-                    });
+                    return BadRequest(result);
                 }
-
-                var cacheKey = $"device_session:{sessionId}";
-                await _cache.RemoveAsync(cacheKey);
-
-                _logger.LogInformation($"Device unpaired. SessionId: {sessionId}");
-
-                return Ok(new DevicePairingResponse
-                {
-                    Success = true,
-                    Message = "Device unpaired successfully",
-                    SessionId = sessionId
-                });
+                return StatusCode(500, result);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error unpairing device with session ID: {sessionId}");
-                return StatusCode(500, new DevicePairingResponse
-                {
-                    Success = false,
-                    Message = "An error occurred while unpairing the device"
-                });
-            }
+
+            return Ok(result);
         }
     }
 }

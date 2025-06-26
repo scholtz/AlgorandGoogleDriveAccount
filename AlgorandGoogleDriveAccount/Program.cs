@@ -1,3 +1,4 @@
+using AlgorandGoogleDriveAccount.BusinessLogic;
 using AlgorandGoogleDriveAccount.MCP;
 using AlgorandGoogleDriveAccount.Model;
 using AlgorandGoogleDriveAccount.Repository;
@@ -30,6 +31,9 @@ namespace AlgorandGoogleDriveAccount
             builder.Services.Configure<RedisConfiguration>(builder.Configuration.GetSection("Redis"));
             builder.Services.AddSingleton<GoogleDriveRepository>();
 
+            // Add business logic services
+            builder.Services.AddScoped<IDevicePairingService, DevicePairingService>();
+
             // Add Redis distributed cache
             var redisConfig = new RedisConfiguration();
             builder.Configuration.GetSection("Redis").Bind(redisConfig);
@@ -56,7 +60,6 @@ namespace AlgorandGoogleDriveAccount
 
             builder.Services.AddControllersWithViews();
 
-
             // Configure MCP Server
             builder.Services.AddMcpServer()
                 .WithHttpTransport()
@@ -74,7 +77,6 @@ namespace AlgorandGoogleDriveAccount
 
             app.UseAuthentication();
             app.UseAuthorization();
-
 
             app.MapControllers();
             app.MapMcp("/mcp");
