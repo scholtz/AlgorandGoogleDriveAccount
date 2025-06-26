@@ -1,6 +1,7 @@
 ﻿using Algorand.Algod.Model;
 using AlgorandGoogleDriveAccount.Helper;
 using Google.Apis.Auth.AspNetCore3;
+using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using Microsoft.Extensions.Options;
@@ -24,9 +25,9 @@ namespace AlgorandGoogleDriveAccount.Repository
             _config = config;
             _aes = aes;
         }
-        public async Task<Account> LoadAccount(string email, int slot)
+        public async Task<Account> LoadAccount(string email, int slot, GoogleCredential? googleCredential = null)
         {
-            var cred = await _auth.GetCredentialAsync();
+            var cred = googleCredential ?? await _auth.GetCredentialAsync();
 
             var service = new DriveService(new BaseClientService.Initializer
             {

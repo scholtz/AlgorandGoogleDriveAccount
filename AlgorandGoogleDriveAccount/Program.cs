@@ -60,7 +60,7 @@ namespace AlgorandGoogleDriveAccount
             // Configure MCP Server
             builder.Services.AddMcpServer()
                 .WithHttpTransport()
-                .WithTools<LoadFile>();
+                .WithTools<BiatecMCPGoogle>();
 
             var app = builder.Build();
 
