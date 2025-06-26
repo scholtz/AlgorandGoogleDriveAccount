@@ -1,9 +1,7 @@
-using AlgorandGoogleDriveAccount.BusinessLogic;
 using AlgorandGoogleDriveAccount.MCP;
 using AlgorandGoogleDriveAccount.Model;
 using AlgorandGoogleDriveAccount.Repository;
 using Google.Apis.Auth.AspNetCore3;
-using Google.Apis.Drive.v3;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
@@ -32,7 +30,8 @@ namespace AlgorandGoogleDriveAccount
             builder.Services.AddSingleton<GoogleDriveRepository>();
 
             // Add business logic services
-            builder.Services.AddScoped<IDevicePairingService, DevicePairingService>();
+            builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.IDevicePairingService, AlgorandGoogleDriveAccount.BusinessLogic.DevicePairingService>();
+            builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.IDriveService, AlgorandGoogleDriveAccount.BusinessLogic.DriveService>();
 
             // Add Redis distributed cache
             var redisConfig = new RedisConfiguration();
@@ -54,7 +53,7 @@ namespace AlgorandGoogleDriveAccount
                     options.ClientId = config.ClientId;
                     options.ClientSecret = config.ClientSecret;
                     options.Scope.Add("email");
-                    options.Scope.Add(DriveService.Scope.DriveFile);
+                    options.Scope.Add(Google.Apis.Drive.v3.DriveService.Scope.DriveFile);
                     options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
                 });
 
