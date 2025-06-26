@@ -20,7 +20,7 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
 
         public async Task<string> InitiatePairingAsync(string sessionId, string deviceName)
         {
-            if (string.IsNullOrEmpty(sessionId))
+            if (string.IsNullOrWhiteSpace(sessionId))
             {
                 throw new ArgumentException("Session ID is required for device pairing", nameof(sessionId));
             }
@@ -49,7 +49,7 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         {
             try
             {
-                if (string.IsNullOrEmpty(sessionId))
+                if (string.IsNullOrWhiteSpace(sessionId))
                 {
                     return new DevicePairingResponse
                     {
@@ -145,7 +145,7 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         {
             try
             {
-                if (string.IsNullOrEmpty(sessionId))
+                if (string.IsNullOrWhiteSpace(sessionId))
                 {
                     throw new ArgumentException("Session ID is required", nameof(sessionId));
                 }
@@ -185,7 +185,7 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         {
             try
             {
-                if (string.IsNullOrEmpty(sessionId))
+                if (string.IsNullOrWhiteSpace(sessionId))
                 {
                     throw new ArgumentException("Session ID is required", nameof(sessionId));
                 }
@@ -234,7 +234,7 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         {
             try
             {
-                if (string.IsNullOrEmpty(sessionId))
+                if (string.IsNullOrWhiteSpace(sessionId))
                 {
                     return new DevicePairingResponse
                     {
