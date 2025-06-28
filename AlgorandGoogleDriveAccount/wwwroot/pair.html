@@ -253,10 +253,11 @@
             }
         }
 
-        // Check if we're returning from OAuth flow
+        // Check if we're returning from OAuth flow or if session parameter is provided
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const sessionId = urlParams.get('sessionId');
+            const sessionParam = urlParams.get('session');
             
             if (sessionId) {
                 document.getElementById('sessionId').value = sessionId;
@@ -266,6 +267,20 @@
                 
                 // Clean up URL
                 window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (sessionParam) {
+                // Handle the session parameter - fill the form and automatically submit
+                document.getElementById('sessionId').value = sessionParam;
+                currentSessionId = sessionParam;
+                
+                showResult(`Session ID ${sessionParam} loaded from URL. Starting pairing process...`, 'info');
+                
+                // Clean up URL before redirecting
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // Automatically trigger the pairing process
+                setTimeout(() => {
+                    pairDevice();
+                }, 100); // Small delay to show the message
             }
         };
     </script>
