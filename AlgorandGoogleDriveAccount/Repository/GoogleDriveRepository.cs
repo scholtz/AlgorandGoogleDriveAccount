@@ -5,6 +5,7 @@ using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace AlgorandGoogleDriveAccount.Repository
@@ -39,6 +40,10 @@ namespace AlgorandGoogleDriveAccount.Repository
 
                 string folderName = _config.CurrentValue.StorageFolderName;
                 string fileName = _config.CurrentValue.StorageFileName;
+
+                var aesid = AesEncryptionHelper.MakeAesId(_aes.CurrentValue);
+
+                fileName = fileName.Replace("%AESID%", aesid);
 
                 // Try to find the folder "Biatec"
                 var folderRequest = service.Files.List();
@@ -117,9 +122,25 @@ namespace AlgorandGoogleDriveAccount.Repository
                     streamDownloadFile.Position = 0;
                     var fileContent = streamDownloadFile.ToArray();
 
-                    var decryptedData = AesEncryptionHelper.Decrypt(fileContent, Convert.FromBase64String(_aes.CurrentValue.Key), Convert.FromBase64String(_aes.CurrentValue.IV), email);
-                    var account = AlgorandARC76AccountDotNet.ARC76.GetEmailAccount(email, Encoding.UTF8.GetString(decryptedData), slot);
-                    return account;
+                    try
+                    {
+                        var decryptedData = AesEncryptionHelper.Decrypt(fileContent, Convert.FromBase64String(_aes.CurrentValue.Key), Convert.FromBase64String(_aes.CurrentValue.IV), email);
+                        var account = AlgorandARC76AccountDotNet.ARC76.GetEmailAccount(email, Encoding.UTF8.GetString(decryptedData), slot);
+                        return account;
+                    }
+                    catch (CryptographicException cryptoEx)
+                    {
+                        // Handle padding or decryption errors specifically
+                        if (cryptoEx.Message.Contains("Padding"))
+                        {
+                            throw new Exception($"Decryption failed for email '{email}'. This might be due to: 1) Email case mismatch (ensure exact email case), 2) File was encrypted with different credentials, 3) Corrupted file data. File size: {fileContent.Length} bytes. Try using the diagnostic endpoint: /api/device/diagnose/{{sessionId}}. Original error: {cryptoEx.Message}");
+                        }
+                        throw new Exception($"Cryptographic error during decryption for email '{email}': {cryptoEx.Message}", cryptoEx);
+                    }
+                    catch (Exception decryptEx)
+                    {
+                        throw new Exception($"Failed to decrypt account data for email '{email}'. File size: {fileContent.Length} bytes. Error: {decryptEx.Message}", decryptEx);
+                    }
                 }
                 catch (Google.GoogleApiException ex) when (ex.HttpStatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
