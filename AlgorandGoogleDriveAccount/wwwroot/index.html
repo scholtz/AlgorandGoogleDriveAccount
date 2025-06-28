@@ -286,4 +286,76 @@
             <h2>Setup Instructions</h2>
             <div class="setup-tabs">
                 <button class="tab-button active" onclick="showTab('claude')">Claude Desktop</button>
-                <button class="tab-button
+                <button class="tab-button" onclick="showTab('vscode')">Visual Studio Code</button>
+            </div>
+            <div id="claude" class="tab-content active">
+                <div class="step">
+                    <h4>1. Open Claude Desktop</h4>
+                    <p>Launch the Claude Desktop application on your computer.</p>
+                </div>
+                <div class="step">
+                    <h4>2. Go to Model Context Protocol (MCP) Settings</h4>
+                    <p>Navigate to <b>Settings</b> &rarr; <b>Model Context Protocol</b> or <b>Custom Servers</b> section.</p>
+                </div>
+                <div class="step">
+                    <h4>3. Add the Biatec MCP Server</h4>
+                    <p>Click <b>Add Server</b> and enter the following URL:</p>
+                    <div class="code-block">
+                        https://google.biatec.io/mcp/
+                    </div>
+                    <p>Save your changes. The server will now be available for use in Claude Desktop.</p>
+                </div>
+                <div class="step">
+                    <h4>4. Use the Integration</h4>
+                    <p>When prompted to select an MCP server, choose <b>Biatec MCP Server</b> or the URL above. Follow the on-screen instructions to authenticate with Google and pair your device.</p>
+                </div>
+            </div>
+            <div id="vscode" class="tab-content">
+                <div class="step">
+                    <h4>1. Open Visual Studio Code</h4>
+                    <p>Start Visual Studio Code on your computer.</p>
+                </div>
+                <div class="step">
+                    <h4>2. Create or Edit <code>mcp.json</code></h4>
+                    <p>In your project folder, create a file named <code>mcp.json</code> (or open it if it already exists).</p>
+                </div>
+                <div class="step">
+                    <h4>3. Add the Biatec MCP Server Configuration</h4>
+                    <p>Insert the following configuration into <code>mcp.json</code>:</p>
+                    <div class="code-block">
+{
+  "servers": [
+    {
+      "name": "Biatec MCP Server",
+      "url": "https://google.biatec.io/mcp/"
+    }
+  ]
+}
+                    </div>
+                    <p>Save the file. Visual Studio Code will now recognize the Biatec MCP Server for Model Context Protocol operations.</p>
+                </div>
+                <div class="step">
+                    <h4>4. Use the Integration</h4>
+                    <p>When using MCP features in VS Code, select <b>Biatec MCP Server</b> as your provider. Follow prompts to authenticate and pair your device as needed.</p>
+                </div>
+            </div>
+            <script>
+                function showTab(tab) {
+                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+                    document.querySelector('.tab-button[onclick*="' + tab + '"]').classList.add('active');
+                    document.getElementById(tab).classList.add('active');
+                }
+            </script>
+        </section>
+
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="/privacy.html">Privacy Policy</a>
+                <a href="/terms.html">Terms of Service</a>
+            </div>
+            <p>&copy; 2023 Biatec. All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>
