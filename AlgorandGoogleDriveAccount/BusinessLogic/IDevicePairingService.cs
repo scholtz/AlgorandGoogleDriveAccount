@@ -8,6 +8,7 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         Task<DevicePairingResponse> ProcessPairingCallbackAsync(string sessionId, string email, string accessToken, string? refreshToken);
         Task<string?> GetDeviceAccessTokenAsync(string sessionId);
         Task<PairedDeviceInfo?> GetDeviceInfoAsync(string sessionId);
+        Task<PairedDeviceInfo?> GetDeviceInfoInternalAsync(string sessionId);
         Task<DevicePairingResponse> UnpairDeviceAsync(string sessionId);
     }
 }

@@ -27,95 +27,114 @@ namespace AlgorandGoogleDriveAccount.Repository
         }
         public async Task<Account> LoadAccount(string email, int slot, GoogleCredential? googleCredential = null)
         {
-            var cred = googleCredential ?? await _auth.GetCredentialAsync();
-
-            var service = new DriveService(new BaseClientService.Initializer
+            try
             {
-                HttpClientInitializer = cred,
-                ApplicationName = _config.CurrentValue.ApplicationName,
-            });
+                var cred = googleCredential ?? await _auth.GetCredentialAsync();
 
-            string folderName = _config.CurrentValue.StorageFolderName;
-            string fileName = _config.CurrentValue.StorageFileName;
-
-            // Try to find the folder "Biatec"
-            var folderRequest = service.Files.List();
-            folderRequest.Q = $"mimeType = 'application/vnd.google-apps.folder' and name = '{folderName}' and trashed = false";
-            folderRequest.Fields = "files(id, name)";
-            var folderResult = await folderRequest.ExecuteAsync();
-
-            var folder = folderResult.Files.FirstOrDefault();
-            if (folder == null)
-            {
-                // Create the folder if not found
-                var folderMetadata = new Google.Apis.Drive.v3.Data.File
+                var service = new DriveService(new BaseClientService.Initializer
                 {
-                    Name = folderName,
-                    MimeType = "application/vnd.google-apps.folder"
-                };
+                    HttpClientInitializer = cred,
+                    ApplicationName = _config.CurrentValue.ApplicationName,
+                });
 
-                var folderCreateRequest = service.Files.Create(folderMetadata);
-                folderCreateRequest.Fields = "id";
-                folder = await folderCreateRequest.ExecuteAsync();
-            }
+                string folderName = _config.CurrentValue.StorageFolderName;
+                string fileName = _config.CurrentValue.StorageFileName;
 
-            // Check if file with same name already exists in that folder
-            var fileCheckRequest = service.Files.List();
-            fileCheckRequest.Q = $"name = '{fileName}' and '{folder.Id}' in parents and trashed = false";
-            fileCheckRequest.Fields = "files(id, name)";
-            var existingFiles = await fileCheckRequest.ExecuteAsync();
+                // Try to find the folder "Biatec"
+                var folderRequest = service.Files.List();
+                folderRequest.Q = $"mimeType = 'application/vnd.google-apps.folder' and name = '{folderName}' and trashed = false";
+                folderRequest.Fields = "files(id, name)";
 
-            if (!existingFiles.Files.Any())
-            {
-
-                // Prepare file metadata
-                var fileMetadata = new Google.Apis.Drive.v3.Data.File
+                try
                 {
-                    Name = fileName,
-                    MimeType = "text/plain",
-                    Parents = new List<string> { folder.Id }
-                };
+                    var folderResult = await folderRequest.ExecuteAsync();
 
-                var newAccount = new Account();
-                var encryptedData = AesEncryptionHelper.Encrypt(Encoding.UTF8.GetBytes(newAccount.ToMnemonic()), Convert.FromBase64String(_aes.CurrentValue.Key), Convert.FromBase64String(_aes.CurrentValue.IV), email);
+                    var folder = folderResult.Files.FirstOrDefault();
+                    if (folder == null)
+                    {
+                        // Create the folder if not found
+                        var folderMetadata = new Google.Apis.Drive.v3.Data.File
+                        {
+                            Name = folderName,
+                            MimeType = "application/vnd.google-apps.folder"
+                        };
 
-                // File content
-                var stream = new MemoryStream(encryptedData);
+                        var folderCreateRequest = service.Files.Create(folderMetadata);
+                        folderCreateRequest.Fields = "id";
+                        folder = await folderCreateRequest.ExecuteAsync();
+                    }
 
-                // Upload request
-                var request = service.Files.Create(fileMetadata, stream, "text/plain");
-                request.Fields = "id, name";
+                    // Check if file with same name already exists in that folder
+                    var fileCheckRequest = service.Files.List();
+                    fileCheckRequest.Q = $"name = '{fileName}' and '{folder.Id}' in parents and trashed = false";
+                    fileCheckRequest.Fields = "files(id, name)";
+                    var existingFiles = await fileCheckRequest.ExecuteAsync();
 
-                var result = await request.UploadAsync();
+                    if (!existingFiles.Files.Any())
+                    {
+                        // Prepare file metadata
+                        var fileMetadata = new Google.Apis.Drive.v3.Data.File
+                        {
+                            Name = fileName,
+                            MimeType = "text/plain",
+                            Parents = new List<string> { folder.Id }
+                        };
 
-                if (result.Status != Google.Apis.Upload.UploadStatus.Completed)
-                {
-                    throw new Exception("File upload failed: " + result.Exception?.Message);
+                        var newAccount = new Account();
+                        var encryptedData = AesEncryptionHelper.Encrypt(Encoding.UTF8.GetBytes(newAccount.ToMnemonic()), Convert.FromBase64String(_aes.CurrentValue.Key), Convert.FromBase64String(_aes.CurrentValue.IV), email);
+
+                        // File content
+                        var stream = new MemoryStream(encryptedData);
+
+                        // Upload request
+                        var request = service.Files.Create(fileMetadata, stream, "text/plain");
+                        request.Fields = "id, name";
+
+                        var result = await request.UploadAsync();
+
+                        if (result.Status != Google.Apis.Upload.UploadStatus.Completed)
+                        {
+                            throw new Exception("File upload failed: " + result.Exception?.Message);
+                        }
+                        existingFiles = await fileCheckRequest.ExecuteAsync();
+
+                        if (!existingFiles.Files.Any())
+                        {
+                            throw new Exception("File upload failed, file not found after upload.");
+                        }
+                    }
+
+                    var file = existingFiles.Files.FirstOrDefault() ?? throw new Exception("File not found after upload.");
+
+                    var requestDownload = service.Files.Get(file.Id);
+                    var streamDownloadFile = new MemoryStream();
+                    requestDownload.MediaDownloader.ProgressChanged += progress =>
+                    {
+                        // Optional: log download progress
+                    };
+
+                    await requestDownload.DownloadAsync(streamDownloadFile);
+                    streamDownloadFile.Position = 0;
+                    var fileContent = streamDownloadFile.ToArray();
+
+                    var decryptedData = AesEncryptionHelper.Decrypt(fileContent, Convert.FromBase64String(_aes.CurrentValue.Key), Convert.FromBase64String(_aes.CurrentValue.IV), email);
+                    var account = AlgorandARC76AccountDotNet.ARC76.GetEmailAccount(email, Encoding.UTF8.GetString(decryptedData), slot);
+                    return account;
                 }
-                existingFiles = await fileCheckRequest.ExecuteAsync();
-
-                if (!existingFiles.Files.Any())
+                catch (Google.GoogleApiException ex) when (ex.HttpStatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    throw new Exception("File upload failed, file not found after upload.");
+                    throw new UnauthorizedAccessException($"Google Drive access denied. The access token may be expired or invalid. Error: {ex.Message}", ex);
                 }
             }
-
-            var file = existingFiles.Files.FirstOrDefault() ?? throw new Exception("File not found after upload.");
-
-            var requestDownload = service.Files.Get(file.Id);
-            var streamDownloadFile = new MemoryStream();
-            requestDownload.MediaDownloader.ProgressChanged += progress =>
+            catch (UnauthorizedAccessException)
             {
-                // Optional: log download progress
-            };
-
-            await requestDownload.DownloadAsync(streamDownloadFile);
-            streamDownloadFile.Position = 0;
-            var fileContent = streamDownloadFile.ToArray();
-
-            var decryptedData = AesEncryptionHelper.Decrypt(fileContent, Convert.FromBase64String(_aes.CurrentValue.Key), Convert.FromBase64String(_aes.CurrentValue.IV), email);
-            var account = AlgorandARC76AccountDotNet.ARC76.GetEmailAccount(email, Encoding.UTF8.GetString(decryptedData), slot);
-            return account;
+                // Re-throw authorization exceptions as-is
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error loading account from Google Drive for email {email}: {ex.Message}", ex);
+            }
         }
     }
 }
