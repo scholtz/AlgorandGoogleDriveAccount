@@ -99,6 +99,10 @@ namespace AlgorandGoogleDriveAccount
             // Add business logic services
             builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.IDevicePairingService, AlgorandGoogleDriveAccount.BusinessLogic.DevicePairingService>();
             builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.IDriveService, AlgorandGoogleDriveAccount.BusinessLogic.DriveService>();
+            builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.IGoogleAuthorizationService, AlgorandGoogleDriveAccount.BusinessLogic.GoogleAuthorizationService>();
+            
+            // Add HTTP context accessor for authorization service
+            builder.Services.AddHttpContextAccessor();
 
             // Add Redis distributed cache
             var redisConfig = new RedisConfiguration();
@@ -119,20 +123,44 @@ namespace AlgorandGoogleDriveAccount
                 {
                     options.ClientId = config.ClientId;
                     options.ClientSecret = config.ClientSecret;
+                    
+                    // Basic scopes - only request what's needed initially
+                    options.Scope.Clear(); // Clear default scopes
+                    options.Scope.Add("openid");
+                    options.Scope.Add("profile");
                     options.Scope.Add("email");
-                    options.Scope.Add(Google.Apis.Drive.v3.DriveService.Scope.DriveFile);
+                    
                     options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
+                    options.ClaimActions.MapJsonKey(ClaimTypes.Name, "name");
+                    options.ClaimActions.MapJsonKey(ClaimTypes.GivenName, "given_name");
+                    options.ClaimActions.MapJsonKey(ClaimTypes.Surname, "family_name");
                     
                     // Configure OpenIdConnect protocol validator to handle nonce validation
                     options.Events = new Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>
                         {
+                            // Support incremental authorization
+                            if (context.Properties.Items.ContainsKey("incremental_scopes"))
+                            {
+                                var additionalScopes = context.Properties.Items["incremental_scopes"];
+                                if (!string.IsNullOrEmpty(additionalScopes))
+                                {
+                                    context.ProtocolMessage.Scope += " " + additionalScopes;
+                                    context.ProtocolMessage.SetParameter("include_granted_scopes", "true");
+                                }
+                            }
+                            
                             // Store session information in authentication properties
                             if (context.Properties.Items.ContainsKey("sessionId"))
                             {
                                 context.ProtocolMessage.State = context.Properties.Items["sessionId"];
                             }
+                            
+                            // Configure for incremental authorization
+                            context.ProtocolMessage.SetParameter("include_granted_scopes", "true");
+                            context.ProtocolMessage.SetParameter("access_type", "offline");
+                            
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = context =>

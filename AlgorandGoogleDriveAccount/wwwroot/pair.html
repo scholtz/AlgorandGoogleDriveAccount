@@ -95,11 +95,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>Biatec Device Pairing</h1>
-        <p>This app shows how to pair a device with Google Drive authentication and retrieve access tokens.</p>
         <div class="logo-container">
             <img src="logo-biatec.png" alt="Biatec Logo" class="logo">
         </div>
+        <h1>Biatec Device Pairing</h1>
+        <p>This app shows how to pair a device with Google Drive authentication and retrieve access tokens.</p>
 
         <div class="form-group">
             <label for="sessionId">Session ID:</label>
@@ -140,7 +140,7 @@
             </ul>
         </div>
     </div>
-
+    
     <script>
         let currentSessionId = '';
 
@@ -155,12 +155,14 @@
         }
 
         function enableButtons() {
+            document.getElementById('driveAccessBtn').disabled = false;
             document.getElementById('getTokenBtn').disabled = false;
             document.getElementById('getInfoBtn').disabled = false;
             document.getElementById('unpairBtn').disabled = false;
         }
 
         function disableButtons() {
+            document.getElementById('driveAccessBtn').disabled = true;
             document.getElementById('getTokenBtn').disabled = true;
             document.getElementById('getInfoBtn').disabled = true;
             document.getElementById('unpairBtn').disabled = true;
@@ -180,6 +182,20 @@
             
             const pairUrl = `/api/device/pair-device?sessionId=${encodeURIComponent(sessionId)}&deviceName=${encodeURIComponent(deviceName)}`;
             window.location.href = pairUrl;
+        }
+
+        function requestDriveAccess() {
+            if (!currentSessionId) {
+                currentSessionId = document.getElementById('sessionId').value.trim();
+            }
+
+            if (!currentSessionId) {
+                showResult('Please enter a session ID first.', 'error');
+                return;
+            }
+
+            showResult('Requesting Google Drive access permissions...', 'info');
+            window.location.href = `/api/device/request-drive-access/${encodeURIComponent(currentSessionId)}`;
         }
 
         async function getAccessToken() {
@@ -273,6 +289,7 @@
             const sessionId = urlParams.get('sessionId');
             const sessionParam = urlParams.get('session');
             const error = urlParams.get('error');
+            const driveAccess = urlParams.get('drive_access');
             
             if (error) {
                 let errorMessage = 'An error occurred during authentication.';
@@ -285,6 +302,12 @@
                         break;
                     case 'callback_error':
                         errorMessage = 'An error occurred during the authentication callback. Please try again.';
+                        break;
+                    case 'drive_access_failed':
+                        errorMessage = 'Google Drive access request failed. Please try again.';
+                        break;
+                    case 'drive_callback_error':
+                        errorMessage = 'An error occurred during the Drive access callback. Please try again.';
                         break;
                 }
                 showResult(errorMessage, 'error');
@@ -300,11 +323,23 @@
                 return;
             }
             
+            if (driveAccess === 'granted') {
+                if (sessionId) {
+                    document.getElementById('sessionId').value = sessionId;
+                    currentSessionId = sessionId;
+                    enableButtons();
+                    showResult('Google Drive access granted successfully! Your device now has permission to access Google Drive files.', 'success');
+                }
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+            }
+            
             if (sessionId) {
                 document.getElementById('sessionId').value = sessionId;
                 currentSessionId = sessionId;
                 enableButtons();
-                showResult('Device pairing completed successfully! You can close this window now, or you can use it later to remove your active session. You can now use the buttons below to interact with the paired device.', 'success');
+                showResult('Device pairing completed successfully! You can close this window now, or you can use it later to remove your active session. Use "Request Drive Access" to grant Google Drive permissions when needed.', 'success');
                 
                 // Clean up URL
                 window.history.replaceState({}, document.title, window.location.pathname);

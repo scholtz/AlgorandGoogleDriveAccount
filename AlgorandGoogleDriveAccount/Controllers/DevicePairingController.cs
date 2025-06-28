@@ -41,18 +41,19 @@ namespace AlgorandGoogleDriveAccount.Controllers
         /// </summary>
         /// <param name="sessionId">Unique session ID for the device</param>
         /// <param name="deviceName">Optional device name for identification</param>
+        /// <param name="requestDriveAccess">Whether to request Google Drive access immediately</param>
         /// <returns>Redirect to Google OAuth</returns>
         [AllowAnonymous]
         [HttpGet("pair-device")]
-        public async Task<IActionResult> PairDevice(string sessionId, string deviceName = "Unknown Device")
+        public async Task<IActionResult> PairDevice(string sessionId, string deviceName = "Unknown Device", bool requestDriveAccess = false)
         {
             try
             {
                 await _devicePairingService.InitiatePairingAsync(sessionId, deviceName);
 
                 var redirectUri = Url.Action("PairedDevice", "DevicePairing", new { sessionId }, Request.Scheme);
-
-                return Challenge(new AuthenticationProperties
+                
+                var authProperties = new AuthenticationProperties
                 {
                     RedirectUri = redirectUri,
                     Items =
@@ -60,7 +61,15 @@ namespace AlgorandGoogleDriveAccount.Controllers
                         ["sessionId"] = sessionId,
                         ["deviceName"] = deviceName
                     }
-                }, GoogleOpenIdConnectDefaults.AuthenticationScheme);
+                };
+
+                // Support incremental authorization for Drive access
+                if (requestDriveAccess)
+                {
+                    authProperties.Items["incremental_scopes"] = Google.Apis.Drive.v3.DriveService.Scope.DriveFile;
+                }
+
+                return Challenge(authProperties, GoogleOpenIdConnectDefaults.AuthenticationScheme);
             }
             catch (ArgumentException ex)
             {
@@ -103,6 +112,85 @@ namespace AlgorandGoogleDriveAccount.Controllers
             {
                 _logger.LogError(ex, $"Error during device pairing callback for session {sessionId}");
                 return Redirect($"/pair.html?error=callback_error&sessionId={sessionId}");
+            }
+        }
+
+        /// <summary>
+        /// Requests additional Google Drive permissions for an already paired device
+        /// </summary>
+        /// <param name="sessionId">Session ID of the paired device</param>
+        /// <returns>Redirect to incremental authorization</returns>
+        [AllowAnonymous]
+        [HttpGet("request-drive-access/{sessionId}")]
+        public async Task<IActionResult> RequestDriveAccess(string sessionId)
+        {
+            try
+            {
+                var deviceInfo = await _devicePairingService.GetDeviceInfoAsync(sessionId);
+                if (deviceInfo == null)
+                {
+                    return NotFound(new ProblemDetails
+                    {
+                        Detail = "Device not found or session expired. Please pair the device first."
+                    });
+                }
+
+                var redirectUri = Url.Action("DriveAccessCallback", "DevicePairing", new { sessionId }, Request.Scheme);
+                
+                var authProperties = new AuthenticationProperties
+                {
+                    RedirectUri = redirectUri,
+                    Items =
+                    {
+                        ["sessionId"] = sessionId,
+                        ["incremental_scopes"] = Google.Apis.Drive.v3.DriveService.Scope.DriveFile
+                    }
+                };
+
+                return Challenge(authProperties, GoogleOpenIdConnectDefaults.AuthenticationScheme);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error requesting Drive access for session {sessionId}");
+                return StatusCode(500, new ProblemDetails
+                {
+                    Detail = "An error occurred while requesting Drive access"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Callback endpoint after incremental Drive authorization
+        /// </summary>
+        /// <param name="sessionId">Session ID from the authorization request</param>
+        /// <returns>Redirect with result</returns>
+        [Authorize]
+        [HttpGet("drive-access-callback")]
+        public async Task<IActionResult> DriveAccessCallback(string sessionId)
+        {
+            try
+            {
+                // Get updated tokens with Drive access
+                var email = User.FindFirst(ClaimTypes.Email)?.Value;
+                var accessToken = await HttpContext.GetTokenAsync("access_token");
+                var refreshToken = await HttpContext.GetTokenAsync("refresh_token");
+
+                // Update the device info with new tokens that include Drive access
+                var result = await _devicePairingService.ProcessPairingCallbackAsync(sessionId, email!, accessToken!, refreshToken);
+
+                if (!result.Success)
+                {
+                    _logger.LogWarning($"Drive access update failed for session {sessionId}: {result.Message}");
+                    return Redirect($"/pair.html?error=drive_access_failed&sessionId={sessionId}");
+                }
+
+                // Redirect to pair.html with success message
+                return Redirect($"/pair.html?drive_access=granted&sessionId={sessionId}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error during Drive access callback for session {sessionId}");
+                return Redirect($"/pair.html?error=drive_callback_error&sessionId={sessionId}");
             }
         }
 

@@ -11,4 +11,11 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         Task<PairedDeviceInfo?> GetDeviceInfoInternalAsync(string sessionId);
         Task<DevicePairingResponse> UnpairDeviceAsync(string sessionId);
     }
+
+    public interface IGoogleAuthorizationService
+    {
+        Task<string> GetIncrementalAuthorizationUrlAsync(string[] additionalScopes, string? sessionId = null, string? redirectUri = null);
+        Task<bool> HasScopeAsync(string scope, string? sessionId = null);
+        Task<string?> GetAccessTokenWithScopeAsync(string scope, string? sessionId = null);
+    }
 }
