@@ -29,4 +29,16 @@
         public bool EnableGranularConsent { get; set; } = false; // New setting for granular consent
         public bool FilterInternalScopes { get; set; } = true; // New setting to filter internal Google scopes
     }
+
+    public class AlgodConfiguration
+    {
+        public Dictionary<string, AlgodNetworkSettings> Networks { get; set; } = new Dictionary<string, AlgodNetworkSettings>();
+    }
+
+    public class AlgodNetworkSettings
+    {
+        public string ApiAddress { get; set; } = string.Empty;
+        public string ApiToken { get; set; } = string.Empty;
+        public string ExplorerBaseUrl { get; set; } = "https://allo.info/tx/";
+    }
 }

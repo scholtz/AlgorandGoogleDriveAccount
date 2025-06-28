@@ -27,18 +27,33 @@ namespace AlgorandGoogleDriveAccount.MCP
         private readonly GoogleDriveRepository _googleDriveRepository;
         private readonly IDevicePairingService _devicePairingService;
         private readonly IOptionsMonitor<Model.Configuration> _config;
+        private readonly IOptionsMonitor<AlgodConfiguration> _algodConfig;
 
         public BiatecMCPGoogle(
             IDistributedCache cache,
             GoogleDriveRepository googleDriveRepository,
             IDevicePairingService devicePairingService,
-            IOptionsMonitor<Model.Configuration> config
+            IOptionsMonitor<Model.Configuration> config,
+            IOptionsMonitor<AlgodConfiguration> algodConfig
             )
         {
             _cache = cache;
             _googleDriveRepository = googleDriveRepository;
             _devicePairingService = devicePairingService;
             _config = config;
+            _algodConfig = algodConfig;
+        }
+
+        private (string apiAddress, string apiToken, string explorerBaseUrl) GetAlgodSettings(string genesisId)
+        {
+            var algodConfig = _algodConfig.CurrentValue;
+            
+            if (algodConfig.Networks.TryGetValue(genesisId.ToLowerInvariant(), out var networkSettings))
+            {
+                return (networkSettings.ApiAddress, networkSettings.ApiToken, networkSettings.ExplorerBaseUrl);
+            }
+
+            throw new Exception($"Unsupported genesis id: {genesisId}. Supported networks: {string.Join(", ", algodConfig.Networks.Keys)}");
         }
 
         public class GetAccountAddressResponse
@@ -133,26 +148,9 @@ namespace AlgorandGoogleDriveAccount.MCP
                     throw new Exception($"Initiate google access and pair your device by signing at {_config.CurrentValue.Host}/pair.html?session={sessionId}");
                 }
 
+                var (apiAddress, apiToken, explorerBaseUrl) = GetAlgodSettings(genesisId);
 
-                string ALGOD_API_ADDR = "";
-                string ALGOD_API_TOKEN = "";
-
-
-                switch (genesisId.ToLowerInvariant())
-                {
-                    case "mainnet-v1.0":
-                        ALGOD_API_ADDR = "https://mainnet-api.4160.nodely.dev";
-                        ALGOD_API_TOKEN = "";
-                        break;
-                    case "testnet-v1.0":
-                        ALGOD_API_ADDR = "https://testnet-api.4160.nodely.dev";
-                        ALGOD_API_TOKEN = "";
-                        break;
-                    default:
-                        throw new Exception($"Unsupported genesis id: {genesisId}");
-                }
-
-                var httpClient = HttpClientConfigurator.ConfigureHttpClient(ALGOD_API_ADDR, ALGOD_API_TOKEN);
+                var httpClient = HttpClientConfigurator.ConfigureHttpClient(apiAddress, apiToken);
                 DefaultApi algodApiInstance = new DefaultApi(httpClient);
 
                 var credential = GoogleCredential.FromAccessToken(deviceInfo.AccessToken);
@@ -175,12 +173,12 @@ namespace AlgorandGoogleDriveAccount.MCP
                 if (assetId == 0)
                 {
                     var result = await account.MakePaymentTo(new Algorand.Address(receiverAccount), amount, note, algodApiInstance);
-                    return new TransferAssetResponse { TxId = result.Txid, ExplorerLink = $"https://allo.info/tx/{result.Txid}" };
+                    return new TransferAssetResponse { TxId = result.Txid, ExplorerLink = $"{explorerBaseUrl}{result.Txid}" };
                 }
                 else
                 {
                     var result = await account.MakeAssetTransferTo(new Algorand.Address(receiverAccount), amount, assetId, note, algodApiInstance);
-                    return new TransferAssetResponse { TxId = result.Txid, ExplorerLink = $"https://allo.info/tx/{result.Txid}" };
+                    return new TransferAssetResponse { TxId = result.Txid, ExplorerLink = $"{explorerBaseUrl}{result.Txid}" };
                 }
             }
             catch (Algorand.ApiException<Algorand.Algod.Model.ErrorResponse> ex)
@@ -241,26 +239,9 @@ namespace AlgorandGoogleDriveAccount.MCP
                     throw new Exception($"Initiate google access and pair your device by signing at {_config.CurrentValue.Host}/pair.html?session={sessionId}");
                 }
 
+                var (apiAddress, apiToken, explorerBaseUrl) = GetAlgodSettings(genesisId);
 
-                string ALGOD_API_ADDR = "";
-                string ALGOD_API_TOKEN = "";
-
-
-                switch (genesisId.ToLowerInvariant())
-                {
-                    case "mainnet-v1.0":
-                        ALGOD_API_ADDR = "https://mainnet-api.4160.nodely.dev";
-                        ALGOD_API_TOKEN = "";
-                        break;
-                    case "testnet-v1.0":
-                        ALGOD_API_ADDR = "https://testnet-api.4160.nodely.dev";
-                        ALGOD_API_TOKEN = "";
-                        break;
-                    default:
-                        throw new Exception($"Unsupported genesis id: {genesisId}");
-                }
-
-                var httpClient = HttpClientConfigurator.ConfigureHttpClient(ALGOD_API_ADDR, ALGOD_API_TOKEN);
+                var httpClient = HttpClientConfigurator.ConfigureHttpClient(apiAddress, apiToken);
                 DefaultApi algodApiInstance = new DefaultApi(httpClient);
 
                 var credential = GoogleCredential.FromAccessToken(deviceInfo.AccessToken);
@@ -287,7 +268,7 @@ namespace AlgorandGoogleDriveAccount.MCP
                 else
                 {
                     var result = await account.MakeAssetTransferTo(account.Address, 0, assetId, note, algodApiInstance);
-                    return new TransferAssetResponse { TxId = result.Txid, ExplorerLink = $"https://allo.info/tx/{result.Txid}" };
+                    return new TransferAssetResponse { TxId = result.Txid, ExplorerLink = $"{explorerBaseUrl}{result.Txid}" };
                 }
             }
             catch (Algorand.ApiException<Algorand.Algod.Model.ErrorResponse> ex)
