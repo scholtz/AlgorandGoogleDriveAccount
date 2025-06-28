@@ -339,6 +339,11 @@
                     <h4>4. Use the Integration</h4>
                     <p>When prompted to select an MCP server, choose <b>Biatec MCP Server</b> or the URL above. Follow the on-screen instructions to authenticate with Google and pair your device.</p>
                 </div>
+                <div class="step">
+                    <h4>5. Do prompt</h4>
+                    <p>For example "@Biatec getAlgorandAddress".</p>
+                    <p>If the authentication prompt will be shown, just login to the google account and run the prompt after successfull login.</p>
+                </div>
             </div>
             <div id="vscode" class="tab-content">
                 <div class="step">
@@ -346,8 +351,8 @@
                     <p>Start Visual Studio Code on your computer.</p>
                 </div>
                 <div class="step">
-                    <h4>2. Create or Edit <code>mcp.json</code></h4>
-                    <p>In your project folder, create a file named <code>mcp.json</code> (or open it if it already exists).</p>
+                    <h4>2. Create or Edit <code>.vscode/mcp.json</code></h4>
+                    <p>In your project folder, create a folder .vscode if it does not exists yet, and file named <code>mcp.json</code> (or open it if it already exists).</p>
                 </div>
                 <div class="step">
                     <h4>3. Add the Biatec MCP Server Configuration</h4>
@@ -368,11 +373,16 @@
 }
  
                     </div>
-                    <p>Save the file. Visual Studio Code will now recognize the Biatec MCP Server for Model Context Protocol operations.</p>
+                    <p>Save the file. Visual Studio Code will now recognize the Biatec for Model Context Protocol operations.</p>
                 </div>
                 <div class="step">
                     <h4>4. Use the Integration</h4>
-                    <p>When using MCP features in VS Code, select <b>Biatec MCP Server</b> as your provider. Follow prompts to authenticate and pair your device as needed.</p>
+                    <p>When using MCP features in VS Code, select <b>Biatec</b> as your provider. Follow prompts to authenticate and pair your device as needed.</p>
+                </div>
+                <div class="step">
+                    <h4>5. Do prompt</h4>
+                    <p>For example "run #getAlgorandAddress".</p>
+                    <p>If the authentication prompt will be shown, just login to the google account and run the prompt after successfull login.</p>
                 </div>
             </div>
             <script>
