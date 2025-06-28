@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using System.Security.Claims;
+using System.Linq;
 
 namespace AlgorandGoogleDriveAccount
 {
@@ -145,6 +146,7 @@ namespace AlgorandGoogleDriveAccount
                     options.ClaimActions.MapJsonKey(ClaimTypes.Surname, "family_name");
                     
                     // Configure OpenIdConnect protocol validator to handle nonce validation
+                    // Configure OpenIdConnect protocol validator to handle nonce validation
                     options.Events = new Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>
@@ -156,7 +158,6 @@ namespace AlgorandGoogleDriveAccount
                                 if (!string.IsNullOrEmpty(additionalScopes))
                                 {
                                     context.ProtocolMessage.Scope += " " + additionalScopes;
-                                    context.ProtocolMessage.SetParameter("include_granted_scopes", "true");
                                 }
                             }
                             
@@ -169,9 +170,13 @@ namespace AlgorandGoogleDriveAccount
                             // Configure for incremental authorization and Cross-Account Protection
                             context.ProtocolMessage.SetParameter("include_granted_scopes", "true");
                             context.ProtocolMessage.SetParameter("access_type", "offline");
-                            
                             // Enable granular consent for better security
                             context.ProtocolMessage.SetParameter("enable_granular_consent", "true");
+                            // Remove any internal reauth scopes that may cause errors
+                            var scopesOnly = context.ProtocolMessage.Scope
+                                .Split(' ', System.StringSplitOptions.RemoveEmptyEntries)
+                                .Where(s => s != "https://www.googleapis.com/auth/accounts.reauth");
+                            context.ProtocolMessage.Scope = string.Join(" ", scopesOnly);
                             
                             return Task.CompletedTask;
                         },
