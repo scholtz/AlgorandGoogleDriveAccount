@@ -53,24 +53,23 @@ namespace AlgorandGoogleDriveAccount.MCP
                 var sessionId = mcpServer.SessionId;
                 if (string.IsNullOrEmpty(sessionId)) throw new Exception("Unable to determine the session id");
 
-                var accessToken = await _devicePairingService.GetDeviceAccessTokenAsync(sessionId);
-                if (string.IsNullOrEmpty(accessToken))
+                var deviceInfo = await _devicePairingService.GetDeviceInfoAsync(sessionId);
+                if (string.IsNullOrEmpty(deviceInfo?.AccessToken))
                 {
                     throw new Exception($"Initiate google access and pair your device by signing at {_config.CurrentValue.Host}/pair.html?session={sessionId}");
 
                 }
-                var credential = GoogleCredential.FromAccessToken(accessToken);
+                var credential = GoogleCredential.FromAccessToken(deviceInfo.AccessToken);
 
                 if (credential == null)
                 {
                     throw new Exception($"Invalid access token. Initiate google access token by signing at {_config.CurrentValue.Host}/pair.html?session={sessionId}");
                 }
-                var email = credential.UnderlyingCredential?.GetType().GetProperty("Email")?.GetValue(credential.UnderlyingCredential)?.ToString();
-                if (string.IsNullOrEmpty(email))
+                if (string.IsNullOrEmpty(deviceInfo.Email))
                 {
                     throw new Exception($"Unable to determine the email from the access token. You can try login again at {_config.CurrentValue.Host}/pair.html?session={sessionId}");
                 }
-                var account = await _googleDriveRepository.LoadAccount(email, 0, credential);
+                var account = await _googleDriveRepository.LoadAccount(deviceInfo.Email, 0, credential);
                 if (account == null)
                 {
                     throw new Exception($"Unable to load the Algorand account from google store. Make sure the claim to access the google store to create files and load created files is granted to biatec app and try to login again. You can try login again at {_config.CurrentValue.Host}/pair.html?session={sessionId}");
