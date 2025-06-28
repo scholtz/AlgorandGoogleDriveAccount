@@ -243,6 +243,12 @@ namespace AlgorandGoogleDriveAccount
             app.MapControllers();
             app.MapMcp("/mcp");
 
+            // Map default route to index.html
+            app.MapGet("/", async context =>
+            {
+                context.Response.ContentType = "text/html";
+                await context.Response.SendFileAsync(Path.Combine(app.Environment.WebRootPath, "index.html"));
+            });
 
             _ = app.Services.GetService<GoogleDriveRepository>();
             _ = app.Services.GetService<BiatecMCPGoogle>();
