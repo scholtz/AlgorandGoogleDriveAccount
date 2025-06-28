@@ -98,6 +98,7 @@ AlgorandGoogleDriveAccount/
 - **CORS**: Configurable cross-origin resource sharing
 - **Rate Limiting**: API call limits by service tier
 - **Audit Logging**: Comprehensive security event logging
+- **UTF-8 Compliance**: All HTML pages properly encoded with UTF-8 for international character support
 
 ## ?? Wealth Management Tiers
 

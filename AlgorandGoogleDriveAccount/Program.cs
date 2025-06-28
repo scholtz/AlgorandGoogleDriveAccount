@@ -232,8 +232,18 @@ namespace AlgorandGoogleDriveAccount
             app.UseSwagger();
             app.UseSwaggerUI();
 
-            // Enable static files
-            app.UseStaticFiles();
+            // Enable static files with proper content types
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                OnPrepareResponse = context =>
+                {
+                    // Ensure HTML files are served with UTF-8 charset
+                    if (context.File.Name.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+                    {
+                        context.Context.Response.Headers.Append("Content-Type", "text/html; charset=utf-8");
+                    }
+                }
+            });
 
             // Enable CORS
             app.UseCors();
@@ -247,7 +257,7 @@ namespace AlgorandGoogleDriveAccount
             // Map default route to index.html
             app.MapGet("/", async context =>
             {
-                context.Response.ContentType = "text/html";
+                context.Response.ContentType = "text/html; charset=utf-8";
                 await context.Response.SendFileAsync(Path.Combine(app.Environment.WebRootPath, "index.html"));
             });
 
