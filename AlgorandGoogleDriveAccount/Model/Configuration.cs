@@ -2,6 +2,7 @@
 {
     public class Configuration
     {
+        public string Host { get; set; } = "https://google.biatec.io";
         public string StorageFolderName { get; set; } = "Biatec";
         public string StorageFileName { get; set; } = "AVMAccount.dat";
         public string ApplicationName { get; set; } = "Biatec";

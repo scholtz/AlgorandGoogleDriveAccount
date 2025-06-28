@@ -4,6 +4,8 @@ using AlgorandGoogleDriveAccount.Repository;
 using Google.Apis.Auth.AspNetCore3;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.Options;
+using ModelContextProtocol.Server;
 using System.Security.Claims;
 
 namespace AlgorandGoogleDriveAccount
@@ -62,7 +64,8 @@ namespace AlgorandGoogleDriveAccount
             // Configure MCP Server
             builder.Services.AddMcpServer()
                 .WithHttpTransport()
-                .WithTools<BiatecMCPGoogle>();
+                .WithToolsFromAssembly();
+
 
             var app = builder.Build();
 
@@ -77,6 +80,10 @@ namespace AlgorandGoogleDriveAccount
 
             app.MapControllers();
             app.MapMcp("/mcp");
+
+
+            _ = app.Services.GetService<GoogleDriveRepository>();
+            _ = app.Services.GetService<BiatecMCPGoogle>();
 
             app.Run();
         }
