@@ -146,7 +146,6 @@ namespace AlgorandGoogleDriveAccount
                     options.ClaimActions.MapJsonKey(ClaimTypes.Surname, "family_name");
                     
                     // Configure OpenIdConnect protocol validator to handle nonce validation
-                    // Configure OpenIdConnect protocol validator to handle nonce validation
                     options.Events = new Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectEvents
                     {
                         OnRedirectToIdentityProvider = context =>
@@ -172,11 +171,22 @@ namespace AlgorandGoogleDriveAccount
                             context.ProtocolMessage.SetParameter("access_type", "offline");
                             // Enable granular consent for better security
                             context.ProtocolMessage.SetParameter("enable_granular_consent", "true");
-                            // Remove any internal reauth scopes that may cause errors
-                            var scopesOnly = context.ProtocolMessage.Scope
+                            
+                            // Remove any internal Google scopes that may cause "cannot be shown" warnings
+                            // These are internal scopes used by Google for Cross-Account Protection and other features
+                            var publicScopesOnly = context.ProtocolMessage.Scope
                                 .Split(' ', System.StringSplitOptions.RemoveEmptyEntries)
-                                .Where(s => s != "https://www.googleapis.com/auth/accounts.reauth");
-                            context.ProtocolMessage.Scope = string.Join(" ", scopesOnly);
+                                .Where(s => !s.Contains("accounts.reauth") && 
+                                           !s.Contains("internal") &&
+                                           !s.StartsWith("https://www.googleapis.com/auth/accounts."))
+                                .Distinct()
+                                .ToArray();
+                                
+                            context.ProtocolMessage.Scope = string.Join(" ", publicScopesOnly);
+                            
+                            // Log the final scopes for debugging
+                            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                            logger.LogInformation("OAuth scopes being requested: {Scopes}", context.ProtocolMessage.Scope);
                             
                             return Task.CompletedTask;
                         },
