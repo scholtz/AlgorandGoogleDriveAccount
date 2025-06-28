@@ -112,6 +112,8 @@
         </div>
 
         <button onclick="pairDevice()">Pair Device</button>
+        <button onclick="requestDriveAccess()" id="driveAccessBtn" disabled>Request Drive Access</button>
+        <button onclick="checkSecurityStatus()" id="securityBtn" disabled>Check Security Status</button>
         <button onclick="getAccessToken()" id="getTokenBtn" disabled>Get Access Token</button>
         <button onclick="getDeviceInfo()" id="getInfoBtn" disabled>Get Device Info</button>
         <button onclick="unpairDevice()" id="unpairBtn" disabled>Unpair Device</button>
@@ -123,8 +125,9 @@
             <ol>
                 <li>Enter a unique Session ID for your device</li>
                 <li>Optionally provide a device name for identification</li>
-                <li>Click "Pair Device" to start the Google OAuth flow</li>
+                <li>Click "Pair Device" to start the Google OAuth flow with Cross-Account Protection</li>
                 <li>After successful authentication, the access token will be stored in Redis with 1-day expiration</li>
+                <li>Use "Check Security Status" to verify your account security</li>
                 <li>Use the session ID to retrieve the access token later</li>
             </ol>
         </div>
@@ -134,9 +137,21 @@
             <ul>
                 <li><strong>GET /api/device/pair-device</strong> - Start device pairing process</li>
                 <li><strong>GET /api/device/paired-device</strong> - OAuth callback endpoint</li>
+                <li><strong>GET /api/device/security-status/{sessionId}</strong> - Check Cross-Account Protection status</li>
                 <li><strong>GET /api/device/access-token/{sessionId}</strong> - Get access token for paired device</li>
                 <li><strong>GET /api/device/info/{sessionId}</strong> - Get device information</li>
                 <li><strong>DELETE /api/device/unpair/{sessionId}</strong> - Unpair device</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>Cross-Account Protection:</h3>
+            <p>This application implements Google's Cross-Account Protection to enhance security by:</p>
+            <ul>
+                <li>Monitoring for suspicious account activity</li>
+                <li>Requiring reauthentication when security threats are detected</li>
+                <li>Reporting security events to Google's protection systems</li>
+                <li>Providing real-time security status information</li>
             </ul>
         </div>
     </div>
@@ -156,6 +171,7 @@
 
         function enableButtons() {
             document.getElementById('driveAccessBtn').disabled = false;
+            document.getElementById('securityBtn').disabled = false;
             document.getElementById('getTokenBtn').disabled = false;
             document.getElementById('getInfoBtn').disabled = false;
             document.getElementById('unpairBtn').disabled = false;
@@ -163,6 +179,7 @@
 
         function disableButtons() {
             document.getElementById('driveAccessBtn').disabled = true;
+            document.getElementById('securityBtn').disabled = true;
             document.getElementById('getTokenBtn').disabled = true;
             document.getElementById('getInfoBtn').disabled = true;
             document.getElementById('unpairBtn').disabled = true;
@@ -196,6 +213,50 @@
 
             showResult('Requesting Google Drive access permissions...', 'info');
             window.location.href = `/api/device/request-drive-access/${encodeURIComponent(currentSessionId)}`;
+        }
+
+        async function checkSecurityStatus() {
+            if (!currentSessionId) {
+                currentSessionId = document.getElementById('sessionId').value.trim();
+            }
+
+            if (!currentSessionId) {
+                showResult('Please enter a session ID first.', 'error');
+                return;
+            }
+
+            try {
+                showResult('Checking Cross-Account Protection security status...', 'info');
+                const response = await fetch(`/api/device/security-status/${encodeURIComponent(currentSessionId)}`);
+                
+                if (response.ok) {
+                    const securityStatus = await response.json();
+                    let statusHtml = `<h4>Security Status:</h4>`;
+                    statusHtml += `<p><strong>Account Secure:</strong> ${securityStatus.isSecure ? '✅ Yes' : '❌ No'}</p>`;
+                    statusHtml += `<p><strong>Requires Reauthentication:</strong> ${securityStatus.requiresReauth ? '⚠️ Yes' : '✅ No'}</p>`;
+                    statusHtml += `<p><strong>Last Check:</strong> ${new Date(securityStatus.lastCheck).toLocaleString()}</p>`;
+                    
+                    if (securityStatus.warnings && securityStatus.warnings.length > 0) {
+                        statusHtml += `<p><strong>Security Warnings:</strong></p><ul>`;
+                        securityStatus.warnings.forEach(warning => {
+                            statusHtml += `<li>${warning}</li>`;
+                        });
+                        statusHtml += `</ul>`;
+                    }
+                    
+                    const statusType = securityStatus.isSecure && !securityStatus.requiresReauth ? 'success' : 'error';
+                    showResult(statusHtml, statusType);
+                    
+                    if (securityStatus.requiresReauth) {
+                        showResult('⚠️ Your account requires reauthentication for security. Please re-pair your device.', 'error');
+                    }
+                } else {
+                    const error = await response.text();
+                    showResult(`Error checking security status: ${error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`Network error checking security status: ${error.message}`, 'error');
+            }
         }
 
         async function getAccessToken() {

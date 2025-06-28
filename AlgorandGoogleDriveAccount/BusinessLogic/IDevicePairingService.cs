@@ -18,4 +18,36 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         Task<bool> HasScopeAsync(string scope, string? sessionId = null);
         Task<string?> GetAccessTokenWithScopeAsync(string scope, string? sessionId = null);
     }
+
+    public interface ICrossAccountProtectionService
+    {
+        Task<bool> IsUserAccountSecureAsync(string userId);
+        Task<CrossAccountProtectionStatus> CheckSecurityStatusAsync(string accessToken);
+        Task<bool> ReportSecurityEventAsync(string userId, SecurityEventType eventType, string? details = null);
+        Task<ReauthenticationResult> RequestReauthenticationAsync(string userId, string[] scopes);
+    }
+
+    public enum SecurityEventType
+    {
+        SuspiciousLogin,
+        UnusualAccess,
+        DataBreach,
+        AccountCompromise,
+        PhishingAttempt
+    }
+
+    public class CrossAccountProtectionStatus
+    {
+        public bool IsSecure { get; set; }
+        public string[] SecurityWarnings { get; set; } = Array.Empty<string>();
+        public DateTime LastSecurityCheck { get; set; }
+        public bool RequiresReauthentication { get; set; }
+    }
+
+    public class ReauthenticationResult
+    {
+        public bool Success { get; set; }
+        public string? ReauthUrl { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
 }

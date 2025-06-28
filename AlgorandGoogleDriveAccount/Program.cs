@@ -100,9 +100,13 @@ namespace AlgorandGoogleDriveAccount
             builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.IDevicePairingService, AlgorandGoogleDriveAccount.BusinessLogic.DevicePairingService>();
             builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.IDriveService, AlgorandGoogleDriveAccount.BusinessLogic.DriveService>();
             builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.IGoogleAuthorizationService, AlgorandGoogleDriveAccount.BusinessLogic.GoogleAuthorizationService>();
+            builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.ICrossAccountProtectionService, AlgorandGoogleDriveAccount.BusinessLogic.CrossAccountProtectionService>();
             
             // Add HTTP context accessor for authorization service
             builder.Services.AddHttpContextAccessor();
+            
+            // Add HttpClient for Cross-Account Protection API calls
+            builder.Services.AddHttpClient<AlgorandGoogleDriveAccount.BusinessLogic.CrossAccountProtectionService>();
 
             // Add Redis distributed cache
             var redisConfig = new RedisConfiguration();
@@ -129,6 +133,9 @@ namespace AlgorandGoogleDriveAccount
                     options.Scope.Add("openid");
                     options.Scope.Add("profile");
                     options.Scope.Add("email");
+                    
+                    // Add Cross-Account Protection scope
+                    options.Scope.Add("https://www.googleapis.com/auth/accounts.reauth");
                     
                     options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
                     options.ClaimActions.MapJsonKey(ClaimTypes.Name, "name");
@@ -157,15 +164,18 @@ namespace AlgorandGoogleDriveAccount
                                 context.ProtocolMessage.State = context.Properties.Items["sessionId"];
                             }
                             
-                            // Configure for incremental authorization
+                            // Configure for incremental authorization and Cross-Account Protection
                             context.ProtocolMessage.SetParameter("include_granted_scopes", "true");
                             context.ProtocolMessage.SetParameter("access_type", "offline");
+                            
+                            // Enable Cross-Account Protection
+                            context.ProtocolMessage.SetParameter("enable_granular_consent", "true");
                             
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = context =>
                         {
-                            // Handle successful token validation
+                            // Handle successful token validation and Cross-Account Protection
                             return Task.CompletedTask;
                         },
                         OnAuthenticationFailed = context =>

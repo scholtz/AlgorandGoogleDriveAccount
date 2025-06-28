@@ -1,9 +1,13 @@
 using AlgorandGoogleDriveAccount.BusinessLogic;
 using AlgorandGoogleDriveAccount.Model;
 using Google.Apis.Auth.AspNetCore3;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Drive.v3;
+using Google.Apis.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 
 namespace AlgorandGoogleDriveAccount.Controllers
@@ -295,6 +299,183 @@ namespace AlgorandGoogleDriveAccount.Controllers
             }
 
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Diagnostic endpoint to help troubleshoot encryption/decryption issues
+        /// </summary>
+        /// <param name="sessionId">Session ID of the paired device</param>
+        /// <returns>Diagnostic information about the account file</returns>
+        [AllowAnonymous]
+        [HttpGet("diagnose/{sessionId}")]
+        public async Task<ActionResult<object>> DiagnoseAccount(string sessionId)
+        {
+            try
+            {
+                var deviceInfo = await _devicePairingService.GetDeviceInfoInternalAsync(sessionId);
+                if (deviceInfo == null)
+                {
+                    return NotFound(new { error = "Device not found or session expired" });
+                }
+
+                var credential = GoogleCredential.FromAccessToken(deviceInfo.AccessToken);
+                if (credential == null)
+                {
+                    return BadRequest(new { error = "Invalid access token" });
+                }
+
+                var service = new Google.Apis.Drive.v3.DriveService(new BaseClientService.Initializer
+                {
+                    HttpClientInitializer = credential,
+                    ApplicationName = "Biatec",
+                });
+
+                // Try to find the folder "Biatec"
+                var folderRequest = service.Files.List();
+                folderRequest.Q = $"mimeType = 'application/vnd.google-apps.folder' and name = 'Biatec' and trashed = false";
+                folderRequest.Fields = "files(id, name)";
+                var folderResult = await folderRequest.ExecuteAsync();
+
+                if (!folderResult.Files.Any())
+                {
+                    return Ok(new 
+                    { 
+                        email = deviceInfo.Email,
+                        folderFound = false,
+                        message = "Biatec folder not found. Account file doesn't exist yet.",
+                        suggestedAction = "Try accessing the account through normal authentication first to create the initial encrypted file."
+                    });
+                }
+
+                var folder = folderResult.Files.First();
+
+                // Check if file exists in folder
+                var fileCheckRequest = service.Files.List();
+                fileCheckRequest.Q = $"name = 'AVMAccount.dat' and '{folder.Id}' in parents and trashed = false";
+                fileCheckRequest.Fields = "files(id, name, size, createdTime, modifiedTime)";
+                var existingFiles = await fileCheckRequest.ExecuteAsync();
+
+                if (!existingFiles.Files.Any())
+                {
+                    return Ok(new 
+                    { 
+                        email = deviceInfo.Email,
+                        folderFound = true,
+                        fileFound = false,
+                        message = "AVMAccount.dat file not found in Biatec folder.",
+                        suggestedAction = "Try accessing the account through normal authentication first to create the initial encrypted file."
+                    });
+                }
+
+                var file = existingFiles.Files.First();
+
+                return Ok(new 
+                { 
+                    email = deviceInfo.Email,
+                    emailLength = deviceInfo.Email?.Length,
+                    folderFound = true,
+                    fileFound = true,
+                    fileId = file.Id,
+                    fileName = file.Name,
+                    fileSize = file.Size,
+                    createdTime = file.CreatedTime,
+                    modifiedTime = file.ModifiedTime,
+                    message = "Account file found. The issue might be with email case sensitivity or encryption key derivation.",
+                    suggestedActions = new[]
+                    {
+                        "Verify that the email case matches exactly between device pairing and normal authentication",
+                        "Check if the AES key and IV configuration are identical",
+                        "Try re-pairing the device to ensure fresh tokens"
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error diagnosing account for session {sessionId}");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Check Cross-Account Protection security status for a device session
+        /// </summary>
+        /// <param name="sessionId">Session ID of the paired device</param>
+        /// <returns>Security status information</returns>
+        [AllowAnonymous]
+        [HttpGet("security-status/{sessionId}")]
+        public async Task<ActionResult<object>> GetSecurityStatus(string sessionId)
+        {
+            try
+            {
+                var deviceInfo = await _devicePairingService.GetDeviceInfoInternalAsync(sessionId);
+                if (deviceInfo == null)
+                {
+                    return NotFound(new { error = "Device not found or session expired" });
+                }
+
+                var capService = HttpContext.RequestServices.GetRequiredService<ICrossAccountProtectionService>();
+                var securityStatus = await capService.CheckSecurityStatusAsync(deviceInfo.AccessToken);
+
+                return Ok(new
+                {
+                    sessionId = sessionId,
+                    email = deviceInfo.Email,
+                    isSecure = securityStatus.IsSecure,
+                    requiresReauth = securityStatus.RequiresReauthentication,
+                    warnings = securityStatus.SecurityWarnings,
+                    lastCheck = securityStatus.LastSecurityCheck
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error checking security status for session {sessionId}");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Report a security event for Cross-Account Protection
+        /// </summary>
+        /// <param name="sessionId">Session ID of the device</param>
+        /// <param name="eventType">Type of security event</param>
+        /// <param name="details">Additional details about the event</param>
+        /// <returns>Result of the security event report</returns>
+        [AllowAnonymous]
+        [HttpPost("report-security-event/{sessionId}")]
+        public async Task<ActionResult<object>> ReportSecurityEvent(string sessionId, [FromBody] SecurityEventRequest request)
+        {
+            try
+            {
+                var deviceInfo = await _devicePairingService.GetDeviceInfoAsync(sessionId);
+                if (deviceInfo == null)
+                {
+                    return NotFound(new { error = "Device not found or session expired" });
+                }
+
+                var capService = HttpContext.RequestServices.GetRequiredService<ICrossAccountProtectionService>();
+                var success = await capService.ReportSecurityEventAsync(
+                    deviceInfo.Email ?? sessionId, 
+                    request.EventType, 
+                    request.Details);
+
+                return Ok(new
+                {
+                    success = success,
+                    message = success ? "Security event reported successfully" : "Failed to report security event",
+                    sessionId = sessionId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error reporting security event for session {sessionId}");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        public class SecurityEventRequest
+        {
+            public SecurityEventType EventType { get; set; }
+            public string? Details { get; set; }
         }
     }
 }
