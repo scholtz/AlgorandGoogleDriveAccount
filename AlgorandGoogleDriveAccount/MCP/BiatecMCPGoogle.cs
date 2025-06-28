@@ -46,7 +46,7 @@ namespace AlgorandGoogleDriveAccount.MCP
         }
 
         [McpServerTool(Name = "getAlgorandAddress"), Description("Loads the Algorand account address stored at the google store.")]
-        public async Task<GetAccountAddressResponse> GetAccountAddress(IMcpServer mcpServer)
+        public async Task<GetAccountAddressResponse> GetAccountAddress(IMcpServer mcpServer, [Description("You can use slot to identify the account. Default account is at slot 1. Second account can be slot 2, and so on.")] int slot = 1)
         {
             try
             {
@@ -65,13 +65,13 @@ namespace AlgorandGoogleDriveAccount.MCP
                 {
                     throw new Exception($"Invalid access token. Initiate google access token by signing at {_config.CurrentValue.Host}/pair.html?session={sessionId}");
                 }
-                
+
                 if (string.IsNullOrEmpty(deviceInfo.Email))
                 {
                     throw new Exception($"Unable to determine the email from the access token. You can try login again at {_config.CurrentValue.Host}/pair.html?session={sessionId}");
                 }
 
-                var account = await _googleDriveRepository.LoadAccount(deviceInfo.Email, 0, credential);
+                var account = await _googleDriveRepository.LoadAccount(deviceInfo.Email, slot, credential);
                 if (account == null)
                 {
                     throw new Exception($"Unable to load the Algorand account from google store. Make sure the claim to access the google store to create files and load created files is granted to biatec app and try to login again. You can try login again at {_config.CurrentValue.Host}/pair.html?session={sessionId}");
@@ -81,17 +81,17 @@ namespace AlgorandGoogleDriveAccount.MCP
             catch (UnauthorizedAccessException unauthorizedEx)
             {
                 // Handle authorization exceptions from GoogleDriveRepository
-                return new GetAccountAddressResponse 
-                { 
-                    Errror = $"Google access token has expired or is invalid. Please re-authenticate at {_config.CurrentValue.Host}/pair.html?session={mcpServer.SessionId}. Details: {unauthorizedEx.Message}" 
+                return new GetAccountAddressResponse
+                {
+                    Errror = $"Google access token has expired or is invalid. Please re-authenticate at {_config.CurrentValue.Host}/pair.html?session={mcpServer.SessionId}. Details: {unauthorizedEx.Message}"
                 };
             }
             catch (Google.GoogleApiException googleEx) when (googleEx.HttpStatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
                 // Handle Google API unauthorized error specifically
-                return new GetAccountAddressResponse 
-                { 
-                    Errror = $"Google access token has expired or is invalid. Please re-authenticate at {_config.CurrentValue.Host}/pair.html?session={mcpServer.SessionId}" 
+                return new GetAccountAddressResponse
+                {
+                    Errror = $"Google access token has expired or is invalid. Please re-authenticate at {_config.CurrentValue.Host}/pair.html?session={mcpServer.SessionId}"
                 };
             }
             catch (Exception ex)
