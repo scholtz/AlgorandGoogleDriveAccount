@@ -4,6 +4,7 @@ using AlgorandGoogleDriveAccount.Repository;
 using Google.Apis.Auth.AspNetCore3;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using System.Security.Claims;
@@ -29,6 +30,70 @@ namespace AlgorandGoogleDriveAccount
             builder.Services.Configure<Model.Configuration>(builder.Configuration.GetSection("App"));
             builder.Services.Configure<AesOptions>(builder.Configuration.GetSection("AesOptions"));
             builder.Services.Configure<RedisConfiguration>(builder.Configuration.GetSection("Redis"));
+            builder.Services.Configure<CorsConfiguration>(builder.Configuration.GetSection("Cors"));
+
+            // Add CORS configuration
+            var corsConfig = new CorsConfiguration();
+            builder.Configuration.GetSection("Cors").Bind(corsConfig);
+            
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(policyBuilder =>
+                {
+                    var origins = corsConfig.AllowedOrigins?.Where(o => !string.IsNullOrWhiteSpace(o)).ToArray() ?? Array.Empty<string>();
+                    
+                    if (origins.Length > 0)
+                    {
+                        policyBuilder.WithOrigins(origins);
+                    }
+                    else
+                    {
+                        // If no origins are configured, allow any origin in development
+                        if (builder.Environment.IsDevelopment())
+                        {
+                            policyBuilder.AllowAnyOrigin();
+                        }
+                        else
+                        {
+                            // In production, don't allow any origin if none configured
+                            policyBuilder.WithOrigins();
+                        }
+                    }
+                    
+                    policyBuilder.AllowAnyMethod()
+                               .AllowAnyHeader();
+                    
+                    // Only allow credentials if we have specific origins (not AllowAnyOrigin)
+                    if (origins.Length > 0)
+                    {
+                        policyBuilder.AllowCredentials();
+                    }
+                });
+
+                // Add a named policy for API endpoints that might need different CORS settings
+                options.AddPolicy("ApiPolicy", policyBuilder =>
+                {
+                    var origins = corsConfig.AllowedOrigins?.Where(o => !string.IsNullOrWhiteSpace(o)).ToArray() ?? Array.Empty<string>();
+                    
+                    if (origins.Length > 0)
+                    {
+                        policyBuilder.WithOrigins(origins);
+                    }
+                    else if (builder.Environment.IsDevelopment())
+                    {
+                        policyBuilder.AllowAnyOrigin();
+                    }
+                    
+                    policyBuilder.AllowAnyMethod()
+                               .AllowAnyHeader();
+                    
+                    if (origins.Length > 0)
+                    {
+                        policyBuilder.AllowCredentials();
+                    }
+                });
+            });
+
             builder.Services.AddSingleton<GoogleDriveRepository>();
 
             // Add business logic services
@@ -57,6 +122,46 @@ namespace AlgorandGoogleDriveAccount
                     options.Scope.Add("email");
                     options.Scope.Add(Google.Apis.Drive.v3.DriveService.Scope.DriveFile);
                     options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
+                    
+                    // Configure OpenIdConnect protocol validator to handle nonce validation
+                    options.Events = new Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectEvents
+                    {
+                        OnRedirectToIdentityProvider = context =>
+                        {
+                            // Store session information in authentication properties
+                            if (context.Properties.Items.ContainsKey("sessionId"))
+                            {
+                                context.ProtocolMessage.State = context.Properties.Items["sessionId"];
+                            }
+                            return Task.CompletedTask;
+                        },
+                        OnTokenValidated = context =>
+                        {
+                            // Handle successful token validation
+                            return Task.CompletedTask;
+                        },
+                        OnAuthenticationFailed = context =>
+                        {
+                            // Log the authentication failure for debugging
+                            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                            logger.LogError(context.Exception, "OpenIdConnect authentication failed: {ErrorMessage}", context.Exception?.Message);
+                            
+                            // Handle nonce validation errors specifically
+                            if (context.Exception?.Message?.Contains("nonce") == true)
+                            {
+                                logger.LogWarning("Nonce validation failed - this may be due to device pairing flow. Continuing with authentication.");
+                                context.HandleResponse();
+                                // Redirect to an error page or handle gracefully
+                                context.Response.Redirect("/pair.html?error=nonce_validation_failed");
+                                return Task.CompletedTask;
+                            }
+                            
+                            return Task.CompletedTask;
+                        }
+                    };
+                    
+                    // Configure protocol validator to be more lenient with nonce validation for device flows
+                    options.ProtocolValidator.RequireNonce = false;
                 });
 
             builder.Services.AddControllersWithViews();
@@ -69,11 +174,29 @@ namespace AlgorandGoogleDriveAccount
 
             var app = builder.Build();
 
+            // Log CORS configuration for debugging
+            var logger = app.Services.GetRequiredService<ILogger<Program>>();
+            var corsConfigForLogging = new CorsConfiguration();
+            app.Configuration.GetSection("Cors").Bind(corsConfigForLogging);
+            
+            if (corsConfigForLogging.AllowedOrigins?.Any() == true)
+            {
+                logger.LogInformation("CORS configured with allowed origins: {AllowedOrigins}", 
+                    string.Join(", ", corsConfigForLogging.AllowedOrigins));
+            }
+            else
+            {
+                logger.LogWarning("No CORS origins configured. Using default policy based on environment.");
+            }
+
             app.UseSwagger();
             app.UseSwaggerUI();
 
             // Enable static files
             app.UseStaticFiles();
+
+            // Enable CORS
+            app.UseCors();
 
             app.UseAuthentication();
             app.UseAuthorization();

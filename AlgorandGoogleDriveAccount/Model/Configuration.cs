@@ -14,4 +14,9 @@
     {
         public string ConnectionString { get; set; } = "localhost:6379";
     }
+
+    public class CorsConfiguration
+    {
+        public string[] AllowedOrigins { get; set; } = Array.Empty<string>();
+    }
 }

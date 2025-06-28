@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: biatec
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: google-account-main-app-deployment
+  namespace: biatec
+spec:
+  selector:
+    matchLabels:
+      app: google-account-main-app
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: google-account-main-app
+    spec:
+      containers:
+        - name: google-account-main-app
+          image: scholtz2/algorand-google-account:1.2025.06.28-main
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 200m
+              memory: "200Mi"
+            limits:
+              cpu: 2000m
+              memory: "1000Mi"
+          ports:
+            - containerPort: 5443
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: google-account-main-app-secret
+          env:
+            - name: ASPNETCORE_Kestrel__Certificates__Default__Path
+              value: /https/cert.pfx
+            - name: ASPNETCORE_Kestrel__Certificates__Default__Password
+              valueFrom:
+                secretKeyRef:
+                  name: csharp-cert-password
+                  key: password
+            - name: ASPNETCORE_Kestrel__Endpoints__Https__Url
+              value: https://google-account-main-app-deployment.biatec:5443
+          readinessProbe:
+            tcpSocket:
+              port: 5443
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 2
+          livenessProbe:
+            tcpSocket:
+              port: 5443
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 2
+            terminationGracePeriodSeconds: 1
+          volumeMounts:
+            - name: google-account-main-conf
+              mountPath: /app/appsettings.json
+              subPath: appsettings.json
+            - name: https-cert
+              mountPath: /https
+              readOnly: true
+      volumes:
+        - name: google-account-main-conf
+          configMap:
+            name: google-account-main-conf
+        - name: https-cert
+          secret:
+            secretName: csharp-cert
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: google-account-service-main
+  namespace: biatec
+spec:
+  type: ClusterIP
+  selector:
+    app: google-account-main-app
+  ports:
+    - name: https
+      protocol: TCP
+      appProtocol: https
+      port: 5443
+      targetPort: 5443
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: google-account-ingress-main
+  namespace: biatec
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.org/websocket-services: "google-account-service-main"
+spec:
+  ingressClassName: "nginx"
+  tls:
+    - hosts:
+        - google.biatec.io
+      secretName: tls-google.biatec.io
+  rules:
+    - host: google.biatec.io
+      http:
+        paths:
+          - path: /(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: google-account-service-main
+                port:
+                  number: 5443

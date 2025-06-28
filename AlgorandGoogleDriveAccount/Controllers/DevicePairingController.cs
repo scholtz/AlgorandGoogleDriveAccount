@@ -24,14 +24,14 @@ namespace AlgorandGoogleDriveAccount.Controllers
         }
 
         /// <summary>
-        /// Serves the device pairing demo page
+        /// Serves the device pairing app page
         /// </summary>
         [AllowAnonymous]
-        [HttpGet("demo")]
-        public IActionResult Demo()
+        [HttpGet("app")]
+        public IActionResult App()
         {
             return PhysicalFile(
-                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "device-pairing-demo.html"),
+                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "pair.html"),
                 "text/html"
             );
         }
@@ -51,11 +51,11 @@ namespace AlgorandGoogleDriveAccount.Controllers
                 await _devicePairingService.InitiatePairingAsync(sessionId, deviceName);
 
                 var redirectUri = Url.Action("PairedDevice", "DevicePairing", new { sessionId }, Request.Scheme);
-                
+
                 return Challenge(new AuthenticationProperties
                 {
                     RedirectUri = redirectUri,
-                    Items = 
+                    Items =
                     {
                         ["sessionId"] = sessionId,
                         ["deviceName"] = deviceName
@@ -64,9 +64,9 @@ namespace AlgorandGoogleDriveAccount.Controllers
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new ProblemDetails 
-                { 
-                    Detail = ex.Message 
+                return BadRequest(new ProblemDetails
+                {
+                    Detail = ex.Message
                 });
             }
         }
@@ -81,20 +81,29 @@ namespace AlgorandGoogleDriveAccount.Controllers
         [HttpGet("paired-device")]
         public async Task<ActionResult<DevicePairingResponse>> PairedDevice(string sessionId)
         {
-            // Get user info and tokens
-            var email = User.FindFirst(ClaimTypes.Email)?.Value;
-            var accessToken = await HttpContext.GetTokenAsync("access_token");
-            var refreshToken = await HttpContext.GetTokenAsync("refresh_token");
-
-            var result = await _devicePairingService.ProcessPairingCallbackAsync(sessionId, email!, accessToken!, refreshToken);
-
-            if (!result.Success)
+            try
             {
-                return BadRequest(result);
-            }
+                // Get user info and tokens
+                var email = User.FindFirst(ClaimTypes.Email)?.Value;
+                var accessToken = await HttpContext.GetTokenAsync("access_token");
+                var refreshToken = await HttpContext.GetTokenAsync("refresh_token");
 
-            // Redirect to demo page with success message
-            return Redirect($"/api/device/demo?sessionId={sessionId}");
+                var result = await _devicePairingService.ProcessPairingCallbackAsync(sessionId, email!, accessToken!, refreshToken);
+
+                if (!result.Success)
+                {
+                    _logger.LogWarning($"Device pairing failed for session {sessionId}: {result.Message}");
+                    return Redirect($"/pair.html?error=pairing_failed&sessionId={sessionId}");
+                }
+
+                // Redirect to pair.html with success message
+                return Redirect($"/pair.html?sessionId={sessionId}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error during device pairing callback for session {sessionId}");
+                return Redirect($"/pair.html?error=callback_error&sessionId={sessionId}");
+            }
         }
 
         /// <summary>
@@ -112,9 +121,9 @@ namespace AlgorandGoogleDriveAccount.Controllers
 
                 if (accessToken == null)
                 {
-                    return NotFound(new ProblemDetails 
-                    { 
-                        Detail = "Device not found or session expired. Please pair the device again." 
+                    return NotFound(new ProblemDetails
+                    {
+                        Detail = "Device not found or session expired. Please pair the device again."
                     });
                 }
 
@@ -122,17 +131,17 @@ namespace AlgorandGoogleDriveAccount.Controllers
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new ProblemDetails 
-                { 
-                    Detail = ex.Message 
+                return BadRequest(new ProblemDetails
+                {
+                    Detail = ex.Message
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error retrieving access token for session ID: {sessionId}");
-                return StatusCode(500, new ProblemDetails 
-                { 
-                    Detail = "An error occurred while retrieving the access token" 
+                return StatusCode(500, new ProblemDetails
+                {
+                    Detail = "An error occurred while retrieving the access token"
                 });
             }
         }
@@ -152,9 +161,9 @@ namespace AlgorandGoogleDriveAccount.Controllers
 
                 if (deviceInfo == null)
                 {
-                    return NotFound(new ProblemDetails 
-                    { 
-                        Detail = "Device not found or session expired" 
+                    return NotFound(new ProblemDetails
+                    {
+                        Detail = "Device not found or session expired"
                     });
                 }
 
@@ -162,17 +171,17 @@ namespace AlgorandGoogleDriveAccount.Controllers
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new ProblemDetails 
-                { 
-                    Detail = ex.Message 
+                return BadRequest(new ProblemDetails
+                {
+                    Detail = ex.Message
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error retrieving device info for session ID: {sessionId}");
-                return StatusCode(500, new ProblemDetails 
-                { 
-                    Detail = "An error occurred while retrieving device information" 
+                return StatusCode(500, new ProblemDetails
+                {
+                    Detail = "An error occurred while retrieving device information"
                 });
             }
         }

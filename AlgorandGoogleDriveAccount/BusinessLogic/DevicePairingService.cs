@@ -230,6 +230,57 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
             }
         }
 
+        /// <summary>
+        /// Gets the full device information with actual tokens for internal use
+        /// </summary>
+        /// <param name="sessionId">Session ID of the paired device</param>
+        /// <returns>Device information with actual tokens if device is paired and not expired</returns>
+        public async Task<PairedDeviceInfo?> GetDeviceInfoInternalAsync(string sessionId)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(sessionId))
+                {
+                    throw new ArgumentException("Session ID is required", nameof(sessionId));
+                }
+
+                var cacheKey = $"device_session:{sessionId}";
+                var deviceInfoJson = await _cache.GetStringAsync(cacheKey);
+
+                if (string.IsNullOrEmpty(deviceInfoJson))
+                {
+                    return null;
+                }
+
+                var deviceInfo = JsonSerializer.Deserialize<PairedDeviceInfo>(deviceInfoJson);
+                
+                if (deviceInfo == null)
+                {
+                    return null;
+                }
+
+                // Check if device session is expired (this is different from token expiration)
+                if (DateTime.UtcNow > deviceInfo.ExpiresAt)
+                {
+                    await _cache.RemoveAsync(cacheKey);
+                    return null;
+                }
+
+                // Note: Google access tokens typically expire after 1 hour, but we're returning the stored token
+                // The GoogleCredential.FromAccessToken method should handle token validation
+                // If the token is expired, the Google API will return an unauthorized error
+                // and the calling code should handle re-authentication
+                
+                // Return the actual device info with real tokens for internal use
+                return deviceInfo;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving internal device info for session ID: {sessionId}");
+                throw;
+            }
+        }
+
         public async Task<DevicePairingResponse> UnpairDeviceAsync(string sessionId)
         {
             try
