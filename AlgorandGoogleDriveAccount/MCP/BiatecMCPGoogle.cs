@@ -7,6 +7,7 @@ using Google.Apis.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using ModelContextProtocol;
 using ModelContextProtocol.AspNetCore;
 using ModelContextProtocol.Server;
@@ -21,33 +22,48 @@ namespace AlgorandGoogleDriveAccount.MCP
     {
         private readonly IDistributedCache _cache;
         private readonly GoogleDriveRepository _googleDriveRepository;
-        private readonly IMcpEndpoint _mcpServer;
         private readonly IDevicePairingService _devicePairingService;
 
-        public BiatecMCPGoogle(IDistributedCache cache, GoogleDriveRepository googleDriveRepository, IMcpEndpoint mcpServer, IDevicePairingService devicePairingService)
+        public BiatecMCPGoogle(IDistributedCache cache, GoogleDriveRepository googleDriveRepository, IDevicePairingService devicePairingService)
         {
             _cache = cache;
             _googleDriveRepository = googleDriveRepository;
-            _mcpServer = mcpServer;
             _devicePairingService = devicePairingService;
         }
 
-        [McpServerResource, Description("Loads the Algorand account address stored at the google store.")]
-        public async Task<string> GetAccountAddress()
+        public class GetAccountAddressResponse
         {
-            var sessionId = _mcpServer.SessionId;
-            if (string.IsNullOrEmpty(sessionId)) throw new Exception("Unable to determine the session id");
+            public string Address { get; set; } = string.Empty;
+            public string Errror { get; set; } = string.Empty;
+        }
 
-            var accessToken  = await _devicePairingService.GetDeviceAccessTokenAsync(sessionId);
-            var credential = GoogleCredential.FromAccessToken(accessToken);
-
-            if (credential == null)
+        [McpServerTool, Description("Loads the Algorand account address stored at the google store.")]
+        public async Task<GetAccountAddressResponse> GetAccountAddress(IMcpServer mcpServer)
+        {
+            try
             {
-                throw new ArgumentException($"Invalid access token. Initiate google access token by signing at https://google.biatec.io/pair.html?session={sessionId}");
+                var sessionId = mcpServer.SessionId;
+                if (string.IsNullOrEmpty(sessionId)) throw new Exception("Unable to determine the session id");
+
+                var accessToken = await _devicePairingService.GetDeviceAccessTokenAsync(sessionId);
+                var credential = GoogleCredential.FromAccessToken(accessToken);
+
+                if (credential == null)
+                {
+                    throw new Exception($"Invalid access token. Initiate google access token by signing at https://google.biatec.io/pair.html?session={sessionId}");
+                }
+                var email = credential.UnderlyingCredential?.GetType().GetProperty("Email")?.GetValue(credential.UnderlyingCredential)?.ToString();
+                if (string.IsNullOrEmpty(email))
+                {
+                    throw new Exception("Unable to determine the email from the access token");
+                }
+                var account = await _googleDriveRepository.LoadAccount(email, 0, credential);
+                return new GetAccountAddressResponse { Address = account.Address.EncodeAsString() };
             }
-            var email = credential.UnderlyingCredential?.GetType().GetProperty("Email")?.GetValue(credential.UnderlyingCredential)?.ToString();
-            var account = await _googleDriveRepository.LoadAccount(email, 0, credential);
-            return account.Address.EncodeAsString();
+            catch (Exception ex)
+            {
+                return new GetAccountAddressResponse { Errror = ex.Message };
+            }
         }
     }
 }
