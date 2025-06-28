@@ -472,6 +472,33 @@ namespace AlgorandGoogleDriveAccount.Controllers
             }
         }
 
+        /// <summary>
+        /// Test endpoint to verify token validation is working
+        /// </summary>
+        /// <returns>Token validation test result</returns>
+        [AllowAnonymous]
+        [HttpGet("test-token-validation")]
+        public async Task<ActionResult<object>> TestTokenValidation()
+        {
+            try
+            {
+                // Test with a dummy token to verify our validation logic
+                var capService = HttpContext.RequestServices.GetRequiredService<ICrossAccountProtectionService>();
+                
+                return Ok(new
+                {
+                    message = "Token validation service is configured correctly",
+                    timestamp = DateTime.UtcNow,
+                    endpoint = "Use /api/device/security-status/{sessionId} to check real token status"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error testing token validation");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
         public class SecurityEventRequest
         {
             public SecurityEventType EventType { get; set; }

@@ -15,8 +15,6 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         private readonly IOptionsMonitor<Configuration> _config;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        private const string GOOGLE_CAP_API_BASE = "https://risc.googleapis.com/v1beta";
-
         public CrossAccountProtectionService(
             HttpClient httpClient,
             IDistributedCache cache,
@@ -70,52 +68,95 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
                     };
                 }
 
-                // Use Google's Cross-Account Protection API
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                // Use Google's tokeninfo endpoint to validate the token and get security information
+                var tokenInfoUrl = $"https://oauth2.googleapis.com/tokeninfo?access_token={Uri.EscapeDataString(token)}";
                 
-                // Check for security events
-                var response = await _httpClient.GetAsync($"{GOOGLE_CAP_API_BASE}/securityEvents");
+                var response = await _httpClient.GetAsync(tokenInfoUrl);
                 
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var securityData = JsonSerializer.Deserialize<JsonElement>(content);
+                    var tokenInfo = JsonSerializer.Deserialize<JsonElement>(content);
                     
-                    // Parse security status from response
-                    var hasActiveThreats = false;
                     var warnings = new List<string>();
+                    var isSecure = true;
+                    var requiresReauth = false;
                     
-                    if (securityData.TryGetProperty("securityEvents", out var events))
+                    // Check token expiration
+                    if (tokenInfo.TryGetProperty("expires_in", out var expiresIn))
                     {
-                        foreach (var eventElement in events.EnumerateArray())
+                        var secondsUntilExpiry = expiresIn.GetInt32();
+                        if (secondsUntilExpiry < 300) // Less than 5 minutes
                         {
-                            if (eventElement.TryGetProperty("severity", out var severity) && 
-                                severity.GetString() == "HIGH")
-                            {
-                                hasActiveThreats = true;
-                                if (eventElement.TryGetProperty("description", out var desc))
-                                {
-                                    warnings.Add(desc.GetString() ?? "Unknown security threat");
-                                }
-                            }
+                            warnings.Add("Access token expires soon (less than 5 minutes)");
+                            requiresReauth = true;
                         }
                     }
+                    
+                    // Check token scope - ensure it has the required scopes
+                    if (tokenInfo.TryGetProperty("scope", out var scope))
+                    {
+                        var scopes = scope.GetString()?.Split(' ') ?? Array.Empty<string>();
+                        var requiredScopes = new[] { "openid", "email", "profile" };
+                        var missingScopes = requiredScopes.Where(rs => !scopes.Contains(rs)).ToArray();
+                        
+                        if (missingScopes.Any())
+                        {
+                            warnings.Add($"Missing required scopes: {string.Join(", ", missingScopes)}");
+                            isSecure = false;
+                        }
+                        
+                        // Check for Cross-Account Protection scope
+                        if (!scopes.Contains("https://www.googleapis.com/auth/accounts.reauth"))
+                        {
+                            warnings.Add("Cross-Account Protection scope not granted - enhanced security features unavailable");
+                        }
+                    }
+                    
+                    // Validate audience (client ID)
+                    if (tokenInfo.TryGetProperty("aud", out var audience))
+                    {
+                        var clientId = _config.CurrentValue.ClientId;
+                        if (audience.GetString() != clientId)
+                        {
+                            warnings.Add("Token audience mismatch - potential security risk");
+                            isSecure = false;
+                            requiresReauth = true;
+                        }
+                    }
+                    
+                    // Additional security checks
+                    var securityChecks = PerformAdditionalSecurityChecks(tokenInfo);
+                    warnings.AddRange(securityChecks.warnings);
+                    isSecure = isSecure && securityChecks.isSecure;
+                    requiresReauth = requiresReauth || securityChecks.requiresReauth;
 
                     return new CrossAccountProtectionStatus
                     {
-                        IsSecure = !hasActiveThreats,
+                        IsSecure = isSecure,
                         SecurityWarnings = warnings.ToArray(),
                         LastSecurityCheck = DateTime.UtcNow,
-                        RequiresReauthentication = hasActiveThreats
+                        RequiresReauthentication = requiresReauth
+                    };
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    // Invalid or expired token
+                    return new CrossAccountProtectionStatus
+                    {
+                        IsSecure = false,
+                        SecurityWarnings = new[] { "Access token is invalid or expired" },
+                        LastSecurityCheck = DateTime.UtcNow,
+                        RequiresReauthentication = true
                     };
                 }
                 else
                 {
-                    _logger.LogWarning($"Failed to check security status. Status: {response.StatusCode}");
+                    _logger.LogWarning($"Failed to validate token. Status: {response.StatusCode}");
                     return new CrossAccountProtectionStatus
                     {
-                        IsSecure = true, // Default to secure if API is unavailable
-                        SecurityWarnings = new[] { "Unable to verify security status with Google" },
+                        IsSecure = true, // Default to secure if API is temporarily unavailable
+                        SecurityWarnings = new[] { $"Unable to verify token status (HTTP {response.StatusCode})" },
                         LastSecurityCheck = DateTime.UtcNow,
                         RequiresReauthentication = false
                     };
@@ -131,6 +172,55 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
                     LastSecurityCheck = DateTime.UtcNow,
                     RequiresReauthentication = true
                 };
+            }
+        }
+
+        private (string[] warnings, bool isSecure, bool requiresReauth) PerformAdditionalSecurityChecks(JsonElement tokenInfo)
+        {
+            var warnings = new List<string>();
+            var isSecure = true;
+            var requiresReauth = false;
+            
+            try
+            {
+                // Check if token was issued recently (security best practice)
+                if (tokenInfo.TryGetProperty("iat", out var issuedAt))
+                {
+                    var issuedTime = DateTimeOffset.FromUnixTimeSeconds(issuedAt.GetInt64());
+                    var timeSinceIssued = DateTimeOffset.UtcNow - issuedTime;
+                    
+                    if (timeSinceIssued.TotalHours > 24)
+                    {
+                        warnings.Add("Token is older than 24 hours - consider refreshing for better security");
+                    }
+                }
+                
+                // Verify token type
+                if (tokenInfo.TryGetProperty("token_type", out var tokenType))
+                {
+                    if (tokenType.GetString()?.ToLower() != "bearer")
+                    {
+                        warnings.Add("Unexpected token type detected");
+                        isSecure = false;
+                    }
+                }
+                
+                // Check for email verification
+                if (tokenInfo.TryGetProperty("email_verified", out var emailVerified))
+                {
+                    if (!emailVerified.GetBoolean())
+                    {
+                        warnings.Add("Email address is not verified - this may pose a security risk");
+                        requiresReauth = true;
+                    }
+                }
+                
+                return (warnings.ToArray(), isSecure, requiresReauth);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error performing additional security checks");
+                return (new[] { "Could not perform all security checks" }, true, false);
             }
         }
 
@@ -152,32 +242,37 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
                     return false;
                 }
 
+                // Log security event locally (since Google's RISC API requires special setup)
                 var securityEvent = new
                 {
                     userId = userId,
                     eventType = eventType.ToString(),
                     timestamp = DateTime.UtcNow.ToString("O"),
                     details = details ?? string.Empty,
-                    source = _config.CurrentValue.ApplicationName
+                    source = _config.CurrentValue.ApplicationName,
+                    userAgent = httpContext.Request.Headers.UserAgent.ToString(),
+                    ipAddress = httpContext.Connection.RemoteIpAddress?.ToString()
                 };
 
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                
-                var jsonContent = JsonSerializer.Serialize(securityEvent);
-                var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
-                
-                var response = await _httpClient.PostAsync($"{GOOGLE_CAP_API_BASE}/securityEvents", content);
-                
-                if (response.IsSuccessStatusCode)
+                // Store the security event in cache for later analysis
+                var eventKey = $"security_event:{userId}:{DateTime.UtcNow:yyyyMMddHHmmss}";
+                var cacheOptions = new DistributedCacheEntryOptions
                 {
-                    _logger.LogInformation($"Successfully reported security event {eventType} for user {userId}");
-                    return true;
-                }
-                else
-                {
-                    _logger.LogWarning($"Failed to report security event. Status: {response.StatusCode}");
-                    return false;
-                }
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30) // Keep for 30 days
+                };
+                
+                await _cache.SetStringAsync(eventKey, JsonSerializer.Serialize(securityEvent), cacheOptions);
+                
+                // Log the security event for monitoring
+                _logger.LogWarning("Security event reported: {EventType} for user {UserId}. Details: {Details}", 
+                    eventType, userId, details);
+
+                // In a production environment, you would:
+                // 1. Send to your security monitoring system
+                // 2. Send to Google via proper RISC API setup (requires publisher verification)
+                // 3. Trigger automated security responses
+                
+                return true;
             }
             catch (Exception ex)
             {

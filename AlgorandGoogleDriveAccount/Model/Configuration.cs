@@ -19,4 +19,12 @@
     {
         public string[] AllowedOrigins { get; set; } = Array.Empty<string>();
     }
+
+    public class CrossAccountProtectionConfiguration
+    {
+        public bool Enabled { get; set; } = true;
+        public bool RequireSecurityCheck { get; set; } = true;
+        public int SecurityCheckIntervalMinutes { get; set; } = 60;
+        public bool AutoReportEvents { get; set; } = true;
+    }
 }

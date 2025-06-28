@@ -31,6 +31,7 @@ namespace AlgorandGoogleDriveAccount
             builder.Services.Configure<AesOptions>(builder.Configuration.GetSection("AesOptions"));
             builder.Services.Configure<RedisConfiguration>(builder.Configuration.GetSection("Redis"));
             builder.Services.Configure<CorsConfiguration>(builder.Configuration.GetSection("Cors"));
+            builder.Services.Configure<CrossAccountProtectionConfiguration>(builder.Configuration.GetSection("CrossAccountProtection"));
 
             // Add CORS configuration
             var corsConfig = new CorsConfiguration();
