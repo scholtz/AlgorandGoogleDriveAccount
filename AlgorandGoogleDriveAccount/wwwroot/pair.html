@@ -92,6 +92,12 @@
             margin-top: 20px;
             color: #2e7d32;
         }
+        .static-info {
+            /* Class for static info boxes that should be hidden when showing results */
+        }
+        .hidden {
+            display: none;
+        }
         pre {
             background-color: #f5f5f5;
             padding: 10px;
@@ -140,11 +146,12 @@
             <button onclick="getAccessToken()" id="getTokenBtn" disabled>Get Access Token</button>-->
             <button onclick="getDeviceInfo()" id="getInfoBtn" disabled>Get Device Info</button>
             <button onclick="unpairDevice()" id="unpairBtn" disabled>Unpair Device</button>
+            <button onclick="hideResult()" id="showInfoBtn" style="background-color: #6c757d;" disabled>Show Info</button>
         </div>
 
         <div id="result"></div>
 
-        <div class="info-box">
+        <div class="info-box static-info">
             <h3>How it works:</h3>
             <ol>
                 <li>Enter a unique Session ID for your device</li>
@@ -157,7 +164,7 @@
             </ol>
         </div>
 
-        <div class="info-box">
+        <div class="info-box static-info">
             <h3>API Endpoints:</h3>
             <ul>
                 <li><strong>GET /api/device/pair-device</strong> - Start device pairing process</li>
@@ -170,7 +177,7 @@
             </ul>
         </div>
 
-        <div class="info-box">
+        <div class="info-box static-info">
             <h3>💰 Self-Custody Wealth Management Tiers:</h3>
             <p>Your service tier is automatically determined based on your total self-custody Algorand portfolio value:</p>
             <ul>
@@ -181,7 +188,7 @@
             <p>No monthly fees - tier assignment is automatic based on your self-custody portfolio value calculated daily using real-time market prices.</p>
         </div>
 
-        <div class="info-box">
+        <div class="info-box static-info">
             <h3>Cross-Account Protection:</h3>
             <p>This application can implement Google's Cross-Account Protection to enhance security (configurable feature):</p>
             <ul>
@@ -194,7 +201,7 @@
             <p><strong>Configuration:</strong> Cross-Account Protection is disabled by default and can be enabled through application configuration.</p>
         </div>
 
-        <div class="info-box">
+        <div class="info-box static-info">
             <h3>🔧 Troubleshooting Authentication Issues:</h3>
             <ul>
                 <li><strong>Scope warning message:</strong> The message about "Some requested scopes cannot be shown" is safe to ignore and is related to internal Google security features.</li>
@@ -215,26 +222,55 @@
 
         function showResult(content, type = 'info') {
             const resultDiv = document.getElementById('result');
+            // Clear any existing result content
+            resultDiv.innerHTML = '';
+            
+            // Hide all static info boxes when showing a result
+            const staticInfoBoxes = document.querySelectorAll('.static-info');
+            staticInfoBoxes.forEach(box => {
+                box.classList.add('hidden');
+            });
+            
+            // Enable the "Show Info" button
+            document.getElementById('showInfoBtn').disabled = false;
+            
             const className = type === 'error' ? 'error-box' : (type === 'success' ? 'success-box' : 'info-box');
             resultDiv.innerHTML = `<div class="${className}">${content}</div>`;
         }
 
+        function hideResult() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+            
+            // Show all static info boxes when hiding result
+            const staticInfoBoxes = document.querySelectorAll('.static-info');
+            staticInfoBoxes.forEach(box => {
+                box.classList.remove('hidden');
+            });
+            
+            // Disable the "Show Info" button since info is now visible
+            document.getElementById('showInfoBtn').disabled = true;
+        }
+
         function enableButtons() {
-            document.getElementById('driveAccessBtn').disabled = false;
-            document.getElementById('portfolioBtn').disabled = false;
-            document.getElementById('securityBtn').disabled = false;
-            document.getElementById('getTokenBtn').disabled = false;
+            // Note: driveAccessBtn, portfolioBtn, securityBtn, getTokenBtn are commented out in HTML
+            // document.getElementById('driveAccessBtn').disabled = false;
+            // document.getElementById('portfolioBtn').disabled = false;
+            // document.getElementById('securityBtn').disabled = false;
+            // document.getElementById('getTokenBtn').disabled = false;
             document.getElementById('getInfoBtn').disabled = false;
             document.getElementById('unpairBtn').disabled = false;
         }
 
         function disableButtons() {
-            document.getElementById('driveAccessBtn').disabled = true;
-            document.getElementById('portfolioBtn').disabled = true;
-            document.getElementById('securityBtn').disabled = true;
-            document.getElementById('getTokenBtn').disabled = true;
+            // Note: driveAccessBtn, portfolioBtn, securityBtn, getTokenBtn are commented out in HTML
+            // document.getElementById('driveAccessBtn').disabled = true;
+            // document.getElementById('portfolioBtn').disabled = true;
+            // document.getElementById('securityBtn').disabled = true;
+            // document.getElementById('getTokenBtn').disabled = true;
             document.getElementById('getInfoBtn').disabled = true;
             document.getElementById('unpairBtn').disabled = true;
+            document.getElementById('showInfoBtn').disabled = true;
         }
 
         function pairDevice() {
