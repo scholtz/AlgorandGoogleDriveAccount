@@ -258,6 +258,33 @@
             const urlParams = new URLSearchParams(window.location.search);
             const sessionId = urlParams.get('sessionId');
             const sessionParam = urlParams.get('session');
+            const error = urlParams.get('error');
+            
+            if (error) {
+                let errorMessage = 'An error occurred during authentication.';
+                switch (error) {
+                    case 'nonce_validation_failed':
+                        errorMessage = 'Authentication failed due to nonce validation. This is a known issue with device pairing flows. Please try again.';
+                        break;
+                    case 'pairing_failed':
+                        errorMessage = 'Device pairing failed. Please check your authentication and try again.';
+                        break;
+                    case 'callback_error':
+                        errorMessage = 'An error occurred during the authentication callback. Please try again.';
+                        break;
+                }
+                showResult(errorMessage, 'error');
+                
+                // If we have a sessionId, still populate it for retry
+                if (sessionId) {
+                    document.getElementById('sessionId').value = sessionId;
+                    currentSessionId = sessionId;
+                }
+                
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+            }
             
             if (sessionId) {
                 document.getElementById('sessionId').value = sessionId;

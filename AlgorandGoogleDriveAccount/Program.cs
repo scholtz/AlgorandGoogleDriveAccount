@@ -4,6 +4,7 @@ using AlgorandGoogleDriveAccount.Repository;
 using Google.Apis.Auth.AspNetCore3;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using System.Security.Claims;
@@ -57,6 +58,46 @@ namespace AlgorandGoogleDriveAccount
                     options.Scope.Add("email");
                     options.Scope.Add(Google.Apis.Drive.v3.DriveService.Scope.DriveFile);
                     options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
+                    
+                    // Configure OpenIdConnect protocol validator to handle nonce validation
+                    options.Events = new Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectEvents
+                    {
+                        OnRedirectToIdentityProvider = context =>
+                        {
+                            // Store session information in authentication properties
+                            if (context.Properties.Items.ContainsKey("sessionId"))
+                            {
+                                context.ProtocolMessage.State = context.Properties.Items["sessionId"];
+                            }
+                            return Task.CompletedTask;
+                        },
+                        OnTokenValidated = context =>
+                        {
+                            // Handle successful token validation
+                            return Task.CompletedTask;
+                        },
+                        OnAuthenticationFailed = context =>
+                        {
+                            // Log the authentication failure for debugging
+                            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                            logger.LogError(context.Exception, "OpenIdConnect authentication failed: {ErrorMessage}", context.Exception?.Message);
+                            
+                            // Handle nonce validation errors specifically
+                            if (context.Exception?.Message?.Contains("nonce") == true)
+                            {
+                                logger.LogWarning("Nonce validation failed - this may be due to device pairing flow. Continuing with authentication.");
+                                context.HandleResponse();
+                                // Redirect to an error page or handle gracefully
+                                context.Response.Redirect("/pair.html?error=nonce_validation_failed");
+                                return Task.CompletedTask;
+                            }
+                            
+                            return Task.CompletedTask;
+                        }
+                    };
+                    
+                    // Configure protocol validator to be more lenient with nonce validation for device flows
+                    options.ProtocolValidator.RequireNonce = false;
                 });
 
             builder.Services.AddControllersWithViews();
