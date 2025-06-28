@@ -107,7 +107,20 @@
             <img src="/logo-biatec.png" alt="Biatec Logo" class="logo">
         </div>
         <h1>Biatec Device Pairing</h1>
-        <p>This app shows how to pair a device with Google Drive authentication and retrieve access tokens.</p>
+        <p>This app shows how to pair a device with Google Drive authentication for self-custody Algorand account access.</p>
+
+        <div class="info-box" style="background: #e8f5e8; border-color: #4caf50; color: #2e7d32;">
+            <h3 style="color: #2e7d32;">🔐 Self-Custody Algorand Account Management</h3>
+            <p><strong>Important:</strong> This service provides true self-custody Algorand account management:</p>
+            <ul>
+                <li><strong>Your keys, your control:</strong> Private keys are encrypted and stored exclusively in your personal Google Drive</li>
+                <li><strong>Email-specific encryption:</strong> Keys are cryptographically bound to your email address and cannot be used by others</li>
+                <li><strong>Non-transferable:</strong> Encrypted keys cannot be moved between different Google Drive accounts</li>
+                <li><strong>Secure processing:</strong> Biatec servers process your encrypted keys only when you authorize transaction signing</li>
+                <li><strong>No custodial risk:</strong> We never store your unencrypted private keys on our servers</li>
+            </ul>
+            <p><strong>Result:</strong> You maintain complete ownership and control of your Algorand assets while benefiting from secure, AI-powered MCP integration.</p>
+        </div>
 
         <div class="form-group">
             <label for="sessionId">Session ID:</label>
@@ -136,11 +149,11 @@
             <ol>
                 <li>Enter a unique Session ID for your device</li>
                 <li>Optionally provide a device name for identification</li>
-                <li>Click "Pair Device" to start the Google OAuth flow with Cross-Account Protection</li>
-                <li>After successful authentication, the access token will be stored in Redis with 1-day expiration</li>
-                <li>Use "Check Portfolio" to see your wealth-based service tier</li>
-                <li>Use "Check Security Status" to verify your account security</li>
-                <li>Use the session ID to retrieve the access token later</li>
+                <li>Click "Pair Device" to start the Google OAuth flow</li>
+                <li>After successful authentication, your device gains access to your self-custody Algorand account</li>
+                <li>Your encrypted private keys remain securely stored in your Google Drive</li>
+                <li>Biatec servers can process your keys only for transaction signing when you authorize it</li>
+                <li>Use device pairing to access your self-custody account across multiple devices</li>
             </ol>
         </div>
 
@@ -158,14 +171,14 @@
         </div>
 
         <div class="info-box">
-            <h3>💰 Wealth Management Tiers:</h3>
-            <p>Your service tier is automatically determined based on your total Algorand portfolio value:</p>
+            <h3>💰 Self-Custody Wealth Management Tiers:</h3>
+            <p>Your service tier is automatically determined based on your total self-custody Algorand portfolio value:</p>
             <ul>
-                <li><strong>💰 Free Tier:</strong> Portfolio &lt; €10,000 - Basic features, 1 device</li>
-                <li><strong>⭐ Professional:</strong> €10,000 - €1,000,000 - Enhanced features, 5 devices</li>
-                <li><strong>🏢 Enterprise:</strong> &gt; €1,000,000 - Premium features, unlimited devices</li>
+                <li><strong>💰 Free Tier:</strong> Portfolio &lt; €10,000 - Basic self-custody features, 1 device</li>
+                <li><strong>⭐ Professional:</strong> €10,000 - €1,000,000 - Enhanced self-custody features, 5 devices</li>
+                <li><strong>🏢 Enterprise:</strong> &gt; €1,000,000 - Premium self-custody features, unlimited devices</li>
             </ul>
-            <p>No monthly fees - tier assignment is automatic based on portfolio value calculated daily using real-time market prices.</p>
+            <p>No monthly fees - tier assignment is automatic based on your self-custody portfolio value calculated daily using real-time market prices.</p>
         </div>
 
         <div class="info-box">

@@ -246,154 +246,36 @@
     <div class="container">
         <section class="hero">
             <h1>Algorand Google Drive MCP Server</h1>
-            <p>Secure Algorand wealth management through Google Drive with AI-powered Model Context Protocol integration</p>
+            <p>Secure self-custody Algorand wealth management through Google Drive with AI-powered Model Context Protocol integration</p>
             <a href="#setup" class="cta-button">Get Started</a>
         </section>
 
         <section id="features" class="features">
             <div class="feature-card">
-                <h3>🔐 Secure Account Storage</h3>
-                <p>Your Algorand private keys are encrypted and stored securely in your Google Drive, ensuring only you have access to your funds.</p>
+                <h3>🔐 Self-Custody Account Storage</h3>
+                <p>Your Algorand private keys are encrypted and stored securely in your personal Google Drive, ensuring only you have access to your funds with true self-custody.</p>
             </div>
             
             <div class="feature-card">
                 <h3>🤖 MCP Integration</h3>
-                <p>Seamlessly integrate with Claude Desktop and Visual Studio Code through the Model Context Protocol for AI-assisted blockchain operations.</p>
+                <p>Seamlessly integrate with Claude Desktop and Visual Studio Code through the Model Context Protocol for AI-assisted blockchain operations while maintaining self-custody.</p>
             </div>
             
             <div class="feature-card">
                 <h3>🔄 Cross-Device Sync</h3>
-                <p>Access your Algorand accounts from any device through secure device pairing and Google authentication.</p>
+                <p>Access your self-custody Algorand accounts from any device through secure device pairing and Google authentication without compromising key ownership.</p>
             </div>
             
             <div class="feature-card">
-                <h3>🛡️ Cross-Account Protection</h3>
-                <p>Enhanced security monitoring with Google's Cross-Account Protection features and real-time threat detection.</p>
+                <h3>🛡️ Email-Bound Security</h3>
+                <p>Enhanced security through email-specific encryption binding that ensures your private keys can only be used with your specific Google account.</p>
             </div>
             
             <div class="feature-card">
-                <h3>📱 Device Pairing</h3>
-                <p>Easily pair new devices with your Algorand accounts using secure OAuth flows and session management.</p>
+                <h3>📱 Secure Device Pairing</h3>
+                <p>Easily pair new devices with your self-custody accounts using secure OAuth flows while maintaining exclusive control of your private keys.</p>
             </div>
             
             <div class="feature-card">
-                <h3>🔑 Incremental Authorization</h3>
-                <p>Grant permissions only when needed with Google's incremental authorization for enhanced privacy.</p>
-            </div>
-        </section>
-
-        <section id="setup" class="setup-section">
-            <h2>Setup Instructions</h2>
-            <div class="setup-tabs">
-                <button class="tab-button active" onclick="showTab('claude')">Claude Desktop</button>
-                <button class="tab-button" onclick="showTab('vscode')">Visual Studio Code</button>
-            </div>
-            <div id="claude" class="tab-content active">
-                <div class="step">
-                    <h4>1. Open Claude Desktop</h4>
-                    <p>Launch the Claude Desktop application on your computer.</p>
-                </div>
-                <div class="step">
-                    <h4>2. Go to Model Context Protocol (MCP) Settings</h4>
-                    <p>Navigate to <b>Settings</b> &rarr; <b>Model Context Protocol</b> or <b>Custom Servers</b> section.</p>
-                </div>
-                <div class="step">
-                    <h4>3. Add the Biatec MCP Server</h4>
-                    <p>Click <b>Add Server</b> and enter the following URL:</p>
-                    <div class="code-block">
-                        https://google.biatec.io/mcp/
-                    </div>
-                    <p>Save your changes. The server will now be available for use in Claude Desktop.</p>
-                </div>
-                <div class="step">
-                    <h4>4. Use the Integration</h4>
-                    <p>When prompted to select an MCP server, choose <b>Biatec MCP Server</b> or the URL above. Follow the on-screen instructions to authenticate with Google and pair your device.</p>
-                </div>
-            </div>
-            <div id="vscode" class="tab-content">
-                <div class="step">
-                    <h4>1. Open Visual Studio Code</h4>
-                    <p>Start Visual Studio Code on your computer.</p>
-                </div>
-                <div class="step">
-                    <h4>2. Create or Edit <code>mcp.json</code></h4>
-                    <p>In your project folder, create a file named <code>mcp.json</code> (or open it if it already exists).</p>
-                </div>
-                <div class="step">
-                    <h4>3. Add the Biatec MCP Server Configuration</h4>
-                    <p>Insert the following configuration into <code>mcp.json</code>:</p>
-                    <div class="code-block">
-{
-  "servers": [
-    {
-      "name": "Biatec MCP Server",
-      "url": "https://google.biatec.io/mcp/"
-    }
-  ]
-}
-                    </div>
-                    <p>Save the file. Visual Studio Code will now recognize the Biatec MCP Server for Model Context Protocol operations.</p>
-                </div>
-                <div class="step">
-                    <h4>4. Use the Integration</h4>
-                    <p>When using MCP features in VS Code, select <b>Biatec MCP Server</b> as your provider. Follow prompts to authenticate and pair your device as needed.</p>
-                </div>
-            </div>
-            <script>
-                function showTab(tab) {
-                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-                    document.querySelector('.tab-button[onclick*="' + tab + '"]').classList.add('active');
-                    document.getElementById(tab).classList.add('active');
-                }
-            </script>
-        </section>
-
-        <section id="pricing" class="setup-section">
-            <h2>Pricing</h2>
-            <div class="features" style="margin: 0;">
-                <div class="feature-card">
-                    <h3>Tier 1: Free</h3>
-                    <p><b>Wealth up to 10,000 EUR</b></p>
-                    <ul>
-                        <li>All core features</li>
-                        <li>Secure Google Drive storage</li>
-                        <li>Device pairing</li>
-                        <li>Community support</li>
-                    </ul>
-                    <div style="font-size: 1.5rem; color: #4285f4; margin-top: 1rem;">€0 / month</div>
-                </div>
-                <div class="feature-card">
-                    <h3>Tier 2: Pro</h3>
-                    <p><b>Wealth up to 1,000,000 EUR</b></p>
-                    <ul>
-                        <li>All Tier 1 features</li>
-                        <li>Priority support</li>
-                        <li>Advanced security monitoring</li>
-                    </ul>
-                    <div style="font-size: 1.5rem; color: #4285f4; margin-top: 1rem;">€10 / month</div>
-                </div>
-                <div class="feature-card">
-                    <h3>Enterprise</h3>
-                    <p><b>Wealth over 1,000,000 EUR</b></p>
-                    <ul>
-                        <li>All Tier 2 features</li>
-                        <li>Dedicated account manager</li>
-                        <li>Custom integrations</li>
-                        <li>Enterprise-grade SLAs</li>
-                    </ul>
-                    <div style="font-size: 1.5rem; color: #4285f4; margin-top: 1rem;">€1,000 / month</div>
-                </div>
-            </div>
-        </section>
-
-        <footer class="footer">
-            <div class="footer-links">
-                <a href="/privacy.html">Privacy Policy</a>
-                <a href="/terms.html">Terms of Service</a>
-            </div>
-            <p>&copy; 2023 Biatec. All rights reserved.</p>
-        </footer>
-    </div>
-</body>
-</html>
+                <h3>⚡ Authorized Processing</h3>
+                <p>Biatec servers process your encrypted keys only when you authorize transaction signing, ensuring true self

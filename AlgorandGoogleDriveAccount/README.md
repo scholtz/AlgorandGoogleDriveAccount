@@ -1,14 +1,39 @@
-# Biatec MCP Server - Algorand Google Drive Integration
+# Biatec MCP Server - Algorand Self-Custody Google Drive Integration
 
-A secure Model Context Protocol (MCP) server that enables AI assistants to interact with Algorand accounts stored encrypted in Google Drive.
+A secure Model Context Protocol (MCP) server that enables AI assistants to interact with self-custody Algorand accounts stored encrypted in Google Drive.
+
+## ?? True Self-Custody Architecture
+
+**Your keys, your control:** This service provides genuine self-custody Algorand account management:
+
+- **?? Your Google Drive Storage**: Private keys are encrypted and stored exclusively in your personal Google Drive
+- **?? Email-Specific Encryption**: Keys are cryptographically bound to your email address and cannot be used by others  
+- **?? Non-Transferable**: Encrypted keys cannot be moved between different Google Drive accounts
+- **? Secure Processing**: Biatec servers process your encrypted keys only when you authorize transaction signing
+- **??? No Custodial Risk**: We never store your unencrypted private keys on our servers
+
+**Result**: Complete ownership and control of your Algorand assets while benefiting from AI-powered MCP integration.
 
 ## ?? Features
 
-- **Secure Account Storage**: Algorand private keys encrypted and stored in your personal Google Drive
-- **MCP Integration**: Compatible with Claude Desktop and Visual Studio Code
-- **Device Pairing**: Secure cross-device synchronization with OAuth
-- **Cross-Account Protection**: Enhanced security monitoring and threat detection
-- **Incremental Authorization**: Request permissions only when needed
+- **Self-Custody Account Storage**: Algorand private keys encrypted and stored in your personal Google Drive with email-specific binding
+- **MCP Integration**: Compatible with Claude Desktop and Visual Studio Code for AI-assisted blockchain operations
+- **Secure Device Pairing**: Cross-device synchronization with OAuth while maintaining self-custody
+- **Email-Bound Security**: Enhanced security monitoring with cryptographic email binding  
+- **Authorized Processing**: Server-side key processing only during explicitly authorized transaction signing
+
+## ?? Self-Custody Security
+
+- **True Self-Custody**: Private keys encrypted and stored exclusively in your Google Drive - never on our servers
+- **Email-Specific Encryption**: AES-256 encryption with keys derived from your specific email address
+- **Non-Transferable Design**: Cryptographic binding prevents keys from being used with different email addresses  
+- **Authorized Processing Only**: Encrypted keys are processed on our servers only during transaction signing that you authorize
+- **OAuth 2.0**: Secure Google authentication for device pairing and account access
+- **CORS**: Configurable cross-origin resource sharing
+- **Rate Limiting**: API call limits by service tier
+- **Audit Logging**: Comprehensive security event logging for all key processing operations
+- **UTF-8 Compliance**: All HTML pages properly encoded with UTF-8 for international character support
+- **Cross-Account Protection**: Optional Google security monitoring (disabled by default, configurable)
 
 ## ?? Quick Start
 
@@ -250,17 +275,17 @@ Cross-Account Protection is disabled by default but can be enabled through confi
 - `EnableGranularConsent`: Enable Google's granular consent features (default: false)
 - `FilterInternalScopes`: Filter internal Google scopes to prevent scope warnings (default: true)
 
-## ?? Wealth Management Tiers
+## ?? Self-Custody Wealth Management Tiers
 
-Service tiers are automatically determined based on your total Algorand portfolio value:
+Service tiers are automatically determined based on your total self-custody Algorand portfolio value:
 
 | Tier | Portfolio Value | Devices | Support | SLA | Features |
 |------|----------------|---------|---------|-----|----------|
-| Free | < €10,000 | 1 | Community | Best effort | Basic account management |
-| Professional | €10,000 - €1,000,000 | 5 | Priority | 99.5% | Portfolio analytics, risk tools |
-| Enterprise | > €1,000,000 | Unlimited | Dedicated | 99.9% | Custom integrations, account manager |
+| Free | < €10,000 | 1 | Community | Best effort | Basic self-custody account management |
+| Professional | €10,000 - €1,000,000 | 5 | Priority | 99.5% | Advanced self-custody features, portfolio analytics |
+| Enterprise | > €1,000,000 | Unlimited | Dedicated | 99.9% | Premium self-custody features, custom integrations |
 
-**Note:** No monthly fees - tier assignment is automatic based on portfolio value calculated daily using real-time market prices.
+**Note:** No monthly fees - tier assignment is automatic based on your self-custody portfolio value calculated daily using real-time market prices. Your private keys remain in your Google Drive regardless of tier.
 
 ## ?? Deployment
 
