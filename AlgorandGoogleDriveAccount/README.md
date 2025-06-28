@@ -22,21 +22,170 @@ A secure Model Context Protocol (MCP) server that enables AI assistants to inter
 ### Installation
 
 1. Clone the repository:git clone <repository-url>
-cd AlgorandGoogleDriveAccount
-2. Configure settings in `appsettings.json`:{
+   cd AlgorandGoogleDriveAccount2. Configure settings in `appsettings.json`:{
   "App": {
     "Host": "https://your-domain.com",
     "ClientId": "your-google-client-id",
     "ClientSecret": "your-google-client-secret"
   },
   "Redis": {
-    "ConnectionString": "localhost:6379"
+       "ConnectionString": "localhost:6379"
+     }
+   }3. Run the application:dotnet run
+## ?? Configuration & Setup Instructions
+
+### Prerequisites Setup
+
+Before connecting to the MCP server, you need:
+
+1. **Active Internet Connection**: To access https://google.biatec.io/mcp/
+2. **Google Account**: For authentication and Drive access
+3. **Session ID**: A unique identifier for your session (you can generate one or use any unique string)
+
+### ?? Claude Desktop Setup
+
+Claude Desktop has built-in MCP support. Follow these steps to connect to the Biatec MCP Server:
+
+#### Step 1: Locate Claude Desktop Configuration
+
+1. **Windows**: Open `%APPDATA%\Claude\claude_desktop_config.json`
+2. **macOS**: Open `~/Library/Application Support/Claude/claude_desktop_config.json`
+3. **Linux**: Open `~/.config/Claude/claude_desktop_config.json`
+
+If the file doesn't exist, create it.
+
+#### Step 2: Add Biatec MCP Server Configuration
+
+Add the following configuration to your `claude_desktop_config.json`:
+{
+  "mcpServers": {
+    "biatec-algorand": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-fetch",
+        "https://google.biatec.io/mcp/"
+      ],
+      "env": {
+        "MCP_SERVER_URL": "https://google.biatec.io/mcp/",
+        "SESSION_ID": "your-unique-session-id-here"
+      }
+    }
   }
 }
-3. Run the application:dotnet run
-## ?? Configuration
+**Important**: Replace `"your-unique-session-id-here"` with your own unique session ID (e.g., `"claude_session_123456"`)
 
-### Google OAuth Setup
+#### Step 3: Restart Claude Desktop
+
+1. Close Claude Desktop completely
+2. Reopen Claude Desktop
+3. The Biatec MCP Server should now be available
+
+#### Step 4: Pair Your Device
+
+1. Visit: `https://google.biatec.io/pair.html?session=your-unique-session-id-here`
+2. Replace `your-unique-session-id-here` with the same Session ID from Step 2
+3. Complete the Google OAuth authentication
+4. Grant Google Drive permissions when prompted
+
+#### Step 5: Test the Connection
+
+In Claude Desktop, try asking:"Can you get my Algorand address using the Biatec MCP server?"
+Claude should now be able to access your Algorand account information!
+
+### ?? Visual Studio Code Setup
+
+Visual Studio Code requires the MCP extension and configuration file.
+
+#### Step 1: Install MCP Extension
+
+1. Open Visual Studio Code
+2. Go to Extensions (Ctrl+Shift+X)
+3. Search for "Model Context Protocol" or "MCP"
+4. Install the official MCP extension
+
+#### Step 2: Create MCP Configuration File
+
+Create a file named `mcp.json` in your project root or workspace folder:
+{
+  "mcp": {
+    "servers": [
+      {
+        "name": "biatec-algorand",
+        "url": "https://google.biatec.io/mcp/",
+        "description": "Biatec Algorand Google Drive MCP Server",
+        "sessionId": "your-unique-session-id-here",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    ]
+  }
+}
+**Important**: Replace `"your-unique-session-id-here"` with your own unique session ID (e.g., `"vscode_session_789012"`)
+
+#### Step 3: Configure VS Code Settings
+
+Open VS Code settings (`Ctrl+,`) and add:
+{
+  "mcp.configFile": "./mcp.json",
+  "mcp.autoConnect": true
+}
+Or add to your workspace settings in `.vscode/settings.json`:
+{
+  "mcp.servers": [
+    {
+      "name": "biatec-algorand",
+      "url": "https://google.biatec.io/mcp/",
+      "sessionId": "your-unique-session-id-here"
+    }
+  ]
+}
+#### Step 4: Pair Your Device
+
+1. Visit: `https://google.biatec.io/pair.html?session=your-unique-session-id-here`
+2. Replace `your-unique-session-id-here` with the same Session ID from Step 2
+3. Complete the Google OAuth authentication
+4. Grant Google Drive permissions when prompted
+
+#### Step 5: Test the Connection
+
+1. Open Command Palette (`Ctrl+Shift+P`)
+2. Run "MCP: Connect to Server"
+3. Select "biatec-algorand"
+4. Try using MCP tools in your workflow
+
+### ?? Available MCP Tools
+
+Once connected, you can use these tools:
+
+- **`getAlgorandAddress`**: Retrieves your Algorand account address from encrypted Google Drive storage
+
+### ?? Troubleshooting
+
+#### Common Issues:
+
+1. **"Session not found" error**:
+   - Make sure you've completed device pairing at `https://google.biatec.io/pair.html?session=YOUR_SESSION_ID`
+   - Verify your Session ID matches in both the configuration and pairing URL
+
+2. **"Access token expired" error**:
+   - Re-visit the pairing page to refresh your authentication
+   - Ensure Google Drive permissions are granted
+
+3. **"MCP server not responding" error**:
+   - Check your internet connection
+   - Verify the server URL: `https://google.biatec.io/mcp/`
+   - Try restarting your IDE
+
+#### Getting Help:
+
+- **Technical Support**: support@biatec.io
+- **Device Pairing Issues**: Visit https://google.biatec.io/pair.html
+- **Documentation**: This README and inline help
+
+### Google OAuth Setup (For Developers)
+
+If you're setting up your own instance:
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select existing
@@ -46,30 +195,8 @@ cd AlgorandGoogleDriveAccount
    - `https://your-domain.com/signin-google`
    - `https://your-domain.com/api/device/paired-device`
 
-### MCP Client Configuration
-
-#### Claude Desktop{
-  "mcpServers": {
-    "biatec-algorand": {
-      "command": "node",
-      "args": ["path/to/biatec-mcp-client.js"],
-      "env": {
-        "MCP_SERVER_URL": "https://your-domain.com/mcp",
-        "SESSION_ID": "your-unique-session-id"
-      }
-    }
-  }
-}
-#### Visual Studio Code{
-  "mcp.servers": [
-    {
-      "name": "biatec-algorand",
-      "url": "https://your-domain.com/mcp",
-      "sessionId": "your-unique-session-id"
-    }
-  ]
-}
 ## ?? Project Structure
+
 AlgorandGoogleDriveAccount/
 ??? Controllers/           # API controllers
 ?   ??? DevicePairingController.cs
@@ -91,6 +218,7 @@ AlgorandGoogleDriveAccount/
     ??? pair.html
     ??? privacy.html
     ??? terms.html
+
 ## ?? Security
 
 - **Encryption**: All private keys encrypted with AES-256
@@ -114,9 +242,11 @@ Service tiers are automatically determined based on your total Algorand portfoli
 
 ## ?? Deployment
 
-### Docker Deploymentdocker build -t biatec-mcp-server .
+### Docker Deployment
+docker build -t biatec-mcp-server .
 docker run -p 80:80 biatec-mcp-server
 ### Environment Variables
+
 - `ASPNETCORE_ENVIRONMENT`: Development/Production
 - `ConnectionStrings__Redis`: Redis connection string
 - `App__ClientId`: Google OAuth client ID
