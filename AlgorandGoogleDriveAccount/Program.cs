@@ -150,6 +150,10 @@ namespace AlgorandGoogleDriveAccount
                     {
                         OnRedirectToIdentityProvider = context =>
                         {
+                            // Get Cross-Account Protection configuration
+                            var capConfig = new CrossAccountProtectionConfiguration();
+                            builder.Configuration.GetSection("CrossAccountProtection").Bind(capConfig);
+                            
                             // Support incremental authorization
                             if (context.Properties.Items.ContainsKey("incremental_scopes"))
                             {
@@ -166,33 +170,59 @@ namespace AlgorandGoogleDriveAccount
                                 context.ProtocolMessage.State = context.Properties.Items["sessionId"];
                             }
                             
-                            // Configure for incremental authorization and Cross-Account Protection
+                            // Configure for incremental authorization
                             context.ProtocolMessage.SetParameter("include_granted_scopes", "true");
                             context.ProtocolMessage.SetParameter("access_type", "offline");
-                            // Enable granular consent for better security
-                            context.ProtocolMessage.SetParameter("enable_granular_consent", "true");
                             
-                            // Remove any internal Google scopes that may cause "cannot be shown" warnings
-                            // These are internal scopes used by Google for Cross-Account Protection and other features
-                            var publicScopesOnly = context.ProtocolMessage.Scope
-                                .Split(' ', System.StringSplitOptions.RemoveEmptyEntries)
-                                .Where(s => !s.Contains("accounts.reauth") && 
-                                           !s.Contains("internal") &&
-                                           !s.StartsWith("https://www.googleapis.com/auth/accounts."))
-                                .Distinct()
-                                .ToArray();
+                            // Apply Cross-Account Protection settings only if enabled
+                            if (capConfig.Enabled)
+                            {
+                                // Enable granular consent for better security (only if Cross-Account Protection is enabled)
+                                if (capConfig.EnableGranularConsent)
+                                {
+                                    context.ProtocolMessage.SetParameter("enable_granular_consent", "true");
+                                }
                                 
-                            context.ProtocolMessage.Scope = string.Join(" ", publicScopesOnly);
+                                // Log that Cross-Account Protection is enabled
+                                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                                logger.LogInformation("Cross-Account Protection is enabled for this authentication request");
+                            }
+                            
+                            // Filter internal Google scopes if configured to do so
+                            if (capConfig.FilterInternalScopes)
+                            {
+                                // Remove any internal Google scopes that may cause "cannot be shown" warnings
+                                var publicScopesOnly = context.ProtocolMessage.Scope
+                                    .Split(' ', System.StringSplitOptions.RemoveEmptyEntries)
+                                    .Where(s => !s.Contains("accounts.reauth") && 
+                                               !s.Contains("internal") &&
+                                               !s.StartsWith("https://www.googleapis.com/auth/accounts."))
+                                    .Distinct()
+                                    .ToArray();
+                                    
+                                context.ProtocolMessage.Scope = string.Join(" ", publicScopesOnly);
+                            }
                             
                             // Log the final scopes for debugging
-                            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                            logger.LogInformation("OAuth scopes being requested: {Scopes}", context.ProtocolMessage.Scope);
+                            var scopeLogger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                            scopeLogger.LogInformation("OAuth scopes being requested: {Scopes} (Cross-Account Protection: {CAPEnabled})", 
+                                context.ProtocolMessage.Scope, capConfig.Enabled ? "Enabled" : "Disabled");
                             
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = context =>
                         {
-                            // Handle successful token validation and Cross-Account Protection
+                            // Get Cross-Account Protection configuration
+                            var capConfig = new CrossAccountProtectionConfiguration();
+                            builder.Configuration.GetSection("CrossAccountProtection").Bind(capConfig);
+                            
+                            if (capConfig.Enabled)
+                            {
+                                // Handle successful token validation and Cross-Account Protection
+                                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                                logger.LogInformation("Token validated successfully with Cross-Account Protection enabled");
+                            }
+                            
                             return Task.CompletedTask;
                         },
                         OnAuthenticationFailed = context =>

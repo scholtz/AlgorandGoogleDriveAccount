@@ -227,6 +227,28 @@ AlgorandGoogleDriveAccount/
 - **Rate Limiting**: API call limits by service tier
 - **Audit Logging**: Comprehensive security event logging
 - **UTF-8 Compliance**: All HTML pages properly encoded with UTF-8 for international character support
+- **Cross-Account Protection**: Optional Google security monitoring (disabled by default, configurable)
+
+### Cross-Account Protection Configuration
+
+Cross-Account Protection is disabled by default but can be enabled through configuration:
+{
+  "CrossAccountProtection": {
+    "Enabled": false,
+    "RequireSecurityCheck": true,
+    "SecurityCheckIntervalMinutes": 60,
+    "AutoReportEvents": true,
+    "EnableGranularConsent": false,
+    "FilterInternalScopes": true
+  }
+}
+**Configuration Options:**
+- `Enabled`: Enable/disable Cross-Account Protection features (default: false)
+- `RequireSecurityCheck`: Require security validation for account access (default: true)
+- `SecurityCheckIntervalMinutes`: Interval between security checks (default: 60)
+- `AutoReportEvents`: Automatically report security events (default: true)
+- `EnableGranularConsent`: Enable Google's granular consent features (default: false)
+- `FilterInternalScopes`: Filter internal Google scopes to prevent scope warnings (default: true)
 
 ## ?? Wealth Management Tiers
 

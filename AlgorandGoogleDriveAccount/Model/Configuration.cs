@@ -22,9 +22,11 @@
 
     public class CrossAccountProtectionConfiguration
     {
-        public bool Enabled { get; set; } = true;
+        public bool Enabled { get; set; } = false; // Changed from true to false (disabled by default)
         public bool RequireSecurityCheck { get; set; } = true;
         public int SecurityCheckIntervalMinutes { get; set; } = 60;
         public bool AutoReportEvents { get; set; } = true;
+        public bool EnableGranularConsent { get; set; } = false; // New setting for granular consent
+        public bool FilterInternalScopes { get; set; } = true; // New setting to filter internal Google scopes
     }
 }

@@ -13,6 +13,7 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         private readonly IDistributedCache _cache;
         private readonly ILogger<CrossAccountProtectionService> _logger;
         private readonly IOptionsMonitor<Configuration> _config;
+        private readonly IOptionsMonitor<CrossAccountProtectionConfiguration> _capConfig;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public CrossAccountProtectionService(
@@ -20,12 +21,14 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
             IDistributedCache cache,
             ILogger<CrossAccountProtectionService> logger,
             IOptionsMonitor<Configuration> config,
+            IOptionsMonitor<CrossAccountProtectionConfiguration> capConfig,
             IHttpContextAccessor httpContextAccessor)
         {
             _httpClient = httpClient;
             _cache = cache;
             _logger = logger;
             _config = config;
+            _capConfig = capConfig;
             _httpContextAccessor = httpContextAccessor;
         }
 
@@ -33,13 +36,20 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         {
             try
             {
+                // If Cross-Account Protection is disabled, return true (assume secure)
+                if (!_capConfig.CurrentValue.Enabled)
+                {
+                    _logger.LogDebug("Cross-Account Protection is disabled - skipping security check for user {UserId}", userId);
+                    return true;
+                }
+
                 var status = await CheckSecurityStatusAsync(null); // Will use current user's token
                 return status.IsSecure && !status.RequiresReauthentication;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error checking account security for user {userId}");
-                return false; // Assume insecure if we can't check
+                return !_capConfig.CurrentValue.Enabled; // If CAP is disabled, assume secure; if enabled, assume insecure on error
             }
         }
 
@@ -47,6 +57,18 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         {
             try
             {
+                // If Cross-Account Protection is disabled, return a basic secure status
+                if (!_capConfig.CurrentValue.Enabled)
+                {
+                    return new CrossAccountProtectionStatus
+                    {
+                        IsSecure = true,
+                        SecurityWarnings = new[] { "Cross-Account Protection is disabled - basic security validation only" },
+                        LastSecurityCheck = DateTime.UtcNow,
+                        RequiresReauthentication = false
+                    };
+                }
+
                 var token = accessToken;
                 if (string.IsNullOrEmpty(token))
                 {
@@ -254,6 +276,13 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         {
             try
             {
+                // If Cross-Account Protection is disabled or auto-reporting is disabled, skip reporting
+                if (!_capConfig.CurrentValue.Enabled || !_capConfig.CurrentValue.AutoReportEvents)
+                {
+                    _logger.LogDebug("Cross-Account Protection reporting is disabled - skipping security event report for user {UserId}, event {EventType}", userId, eventType);
+                    return true; // Return true as if reported successfully
+                }
+
                 var httpContext = _httpContextAccessor.HttpContext;
                 if (httpContext?.User?.Identity?.IsAuthenticated != true)
                 {
@@ -277,7 +306,8 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
                     details = details ?? string.Empty,
                     source = _config.CurrentValue.ApplicationName,
                     userAgent = httpContext.Request.Headers.UserAgent.ToString(),
-                    ipAddress = httpContext.Connection.RemoteIpAddress?.ToString()
+                    ipAddress = httpContext.Connection.RemoteIpAddress?.ToString(),
+                    crossAccountProtectionEnabled = _capConfig.CurrentValue.Enabled
                 };
 
                 // Store the security event in cache for later analysis
@@ -290,8 +320,8 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
                 await _cache.SetStringAsync(eventKey, JsonSerializer.Serialize(securityEvent), cacheOptions);
                 
                 // Log the security event for monitoring
-                _logger.LogWarning("Security event reported: {EventType} for user {UserId}. Details: {Details}", 
-                    eventType, userId, details);
+                _logger.LogWarning("Security event reported: {EventType} for user {UserId}. Details: {Details} (Cross-Account Protection: {CAPEnabled})", 
+                    eventType, userId, details, _capConfig.CurrentValue.Enabled ? "Enabled" : "Disabled");
 
                 // In a production environment, you would:
                 // 1. Send to your security monitoring system

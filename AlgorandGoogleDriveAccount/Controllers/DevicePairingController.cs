@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
 namespace AlgorandGoogleDriveAccount.Controllers
@@ -538,6 +539,41 @@ namespace AlgorandGoogleDriveAccount.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error getting portfolio info for session {sessionId}");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get Cross-Account Protection configuration status
+        /// </summary>
+        /// <returns>Cross-Account Protection status information</returns>
+        [AllowAnonymous]
+        [HttpGet("cap-status")]
+        public ActionResult<object> GetCrossAccountProtectionStatus()
+        {
+            try
+            {
+                var capConfig = HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<CrossAccountProtectionConfiguration>>();
+                
+                return Ok(new
+                {
+                    crossAccountProtection = new
+                    {
+                        enabled = capConfig.CurrentValue.Enabled,
+                        requireSecurityCheck = capConfig.CurrentValue.RequireSecurityCheck,
+                        securityCheckIntervalMinutes = capConfig.CurrentValue.SecurityCheckIntervalMinutes,
+                        autoReportEvents = capConfig.CurrentValue.AutoReportEvents,
+                        enableGranularConsent = capConfig.CurrentValue.EnableGranularConsent,
+                        filterInternalScopes = capConfig.CurrentValue.FilterInternalScopes
+                    },
+                    message = capConfig.CurrentValue.Enabled 
+                        ? "Cross-Account Protection is enabled for enhanced security monitoring"
+                        : "Cross-Account Protection is disabled - basic security validation only"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Cross-Account Protection status");
                 return StatusCode(500, new { error = ex.Message });
             }
         }
