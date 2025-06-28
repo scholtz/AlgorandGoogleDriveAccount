@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Pairing Demo</title>
+    <title>Biatec Device Pairing</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -84,8 +84,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Device Pairing Demo</h1>
-        <p>This demo shows how to pair a device with Google Drive authentication and retrieve access tokens.</p>
+        <h1>Biatec Device Pairing</h1>
+        <p>This app shows how to pair a device with Google Drive authentication and retrieve access tokens.</p>
 
         <div class="form-group">
             <label for="sessionId">Session ID:</label>
@@ -290,7 +290,7 @@
                 document.getElementById('sessionId').value = sessionId;
                 currentSessionId = sessionId;
                 enableButtons();
-                showResult('Device pairing completed successfully! You can now use the buttons below to interact with the paired device.', 'success');
+                showResult('Device pairing completed successfully! You can close this window now, or you can use it later to remove your active session. You can now use the buttons below to interact with the paired device.', 'success');
                 
                 // Clean up URL
                 window.history.replaceState({}, document.title, window.location.pathname);
