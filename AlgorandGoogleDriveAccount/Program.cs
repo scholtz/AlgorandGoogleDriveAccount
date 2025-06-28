@@ -135,8 +135,8 @@ namespace AlgorandGoogleDriveAccount
                     options.Scope.Add("profile");
                     options.Scope.Add("email");
                     
-                    // Add Cross-Account Protection scope
-                    options.Scope.Add("https://www.googleapis.com/auth/accounts.reauth");
+                    // Note: Cross-Account Protection doesn't require a special scope
+                    // It works with standard OAuth scopes and proper security practices
                     
                     options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
                     options.ClaimActions.MapJsonKey(ClaimTypes.Name, "name");
@@ -169,7 +169,7 @@ namespace AlgorandGoogleDriveAccount
                             context.ProtocolMessage.SetParameter("include_granted_scopes", "true");
                             context.ProtocolMessage.SetParameter("access_type", "offline");
                             
-                            // Enable Cross-Account Protection
+                            // Enable granular consent for better security
                             context.ProtocolMessage.SetParameter("enable_granular_consent", "true");
                             
                             return Task.CompletedTask;
