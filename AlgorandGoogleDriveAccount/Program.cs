@@ -288,7 +288,10 @@ namespace AlgorandGoogleDriveAccount
 
             // Configure MCP Server
             builder.Services.AddMcpServer()
-                .WithHttpTransport()
+                .WithHttpTransport(options =>
+                {
+                    options.Stateless = true;
+                })
                 .WithToolsFromAssembly();
 
 
