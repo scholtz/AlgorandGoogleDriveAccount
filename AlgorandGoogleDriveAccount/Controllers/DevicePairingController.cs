@@ -499,6 +499,84 @@ namespace AlgorandGoogleDriveAccount.Controllers
             }
         }
 
+        /// <summary>
+        /// Get portfolio summary and service tier for a device session
+        /// </summary>
+        /// <param name="sessionId">Session ID of the paired device</param>
+        /// <returns>Portfolio information and current service tier</returns>
+        [AllowAnonymous]
+        [HttpGet("portfolio/{sessionId}")]
+        public async Task<ActionResult<object>> GetPortfolioInfo(string sessionId)
+        {
+            try
+            {
+                var deviceInfo = await _devicePairingService.GetDeviceInfoInternalAsync(sessionId);
+                if (deviceInfo == null)
+                {
+                    return NotFound(new { error = "Device not found or session expired" });
+                }
+
+                var portfolioService = HttpContext.RequestServices.GetRequiredService<IPortfolioValuationService>();
+                var portfolioSummary = await portfolioService.GetPortfolioSummaryAsync(deviceInfo.Email!);
+
+                return Ok(new
+                {
+                    sessionId = sessionId,
+                    email = deviceInfo.Email,
+                    portfolio = new
+                    {
+                        totalValueEur = portfolioSummary.TotalValueEur,
+                        currentTier = portfolioSummary.CurrentTier.ToString(),
+                        lastUpdated = portfolioSummary.LastUpdated,
+                        accountCount = portfolioSummary.AccountCount,
+                        algorandBalance = portfolioSummary.AlgorandBalance,
+                        assetValue = portfolioSummary.AssetValue
+                    },
+                    tierBenefits = GetTierBenefits(portfolioSummary.CurrentTier)
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting portfolio info for session {sessionId}");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        private static object GetTierBenefits(ServiceTier tier)
+        {
+            return tier switch
+            {
+                ServiceTier.Free => new
+                {
+                    tier = "Free",
+                    portfolioRange = "< €10,000",
+                    devices = 1,
+                    support = "Community",
+                    sla = "Best effort",
+                    features = new[] { "Basic account management", "Standard security", "Portfolio tracking" }
+                },
+                ServiceTier.Professional => new
+                {
+                    tier = "Professional",
+                    portfolioRange = "€10,000 - €1,000,000",
+                    devices = 5,
+                    support = "Priority",
+                    sla = "99.5%",
+                    features = new[] { "Full account management", "Advanced security", "Portfolio analytics", "Risk management" }
+                },
+                ServiceTier.Enterprise => new
+                {
+                    tier = "Enterprise",
+                    portfolioRange = "> €1,000,000",
+                    devices = "Unlimited",
+                    support = "Dedicated",
+                    sla = "99.9%",
+                    features = new[] { "All Professional features", "Dedicated account manager", "Custom integrations", "Institutional security" }
+                },
+                _ => new { tier = "Unknown" }
+            };
+        }
+
         public class SecurityEventRequest
         {
             public SecurityEventType EventType { get; set; }

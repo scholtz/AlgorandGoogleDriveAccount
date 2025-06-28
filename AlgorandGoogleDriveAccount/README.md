@@ -21,15 +21,9 @@ A secure Model Context Protocol (MCP) server that enables AI assistants to inter
 
 ### Installation
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
+1. Clone the repository:git clone <repository-url>
 cd AlgorandGoogleDriveAccount
-```
-
-2. Configure settings in `appsettings.json`:
-```json
-{
+2. Configure settings in `appsettings.json`:{
   "App": {
     "Host": "https://your-domain.com",
     "ClientId": "your-google-client-id",
@@ -39,13 +33,7 @@ cd AlgorandGoogleDriveAccount
     "ConnectionString": "localhost:6379"
   }
 }
-```
-
-3. Run the application:
-```bash
-dotnet run
-```
-
+3. Run the application:dotnet run
 ## ?? Configuration
 
 ### Google OAuth Setup
@@ -60,9 +48,7 @@ dotnet run
 
 ### MCP Client Configuration
 
-#### Claude Desktop
-```json
-{
+#### Claude Desktop{
   "mcpServers": {
     "biatec-algorand": {
       "command": "node",
@@ -74,11 +60,7 @@ dotnet run
     }
   }
 }
-```
-
-#### Visual Studio Code
-```json
-{
+#### Visual Studio Code{
   "mcp.servers": [
     {
       "name": "biatec-algorand",
@@ -87,11 +69,7 @@ dotnet run
     }
   ]
 }
-```
-
 ## ?? Project Structure
-
-```
 AlgorandGoogleDriveAccount/
 ??? Controllers/           # API controllers
 ?   ??? DevicePairingController.cs
@@ -113,8 +91,6 @@ AlgorandGoogleDriveAccount/
     ??? pair.html
     ??? privacy.html
     ??? terms.html
-```
-
 ## ?? Security
 
 - **Encryption**: All private keys encrypted with AES-256
@@ -123,23 +99,22 @@ AlgorandGoogleDriveAccount/
 - **Rate Limiting**: API call limits by service tier
 - **Audit Logging**: Comprehensive security event logging
 
-## ?? Service Tiers
+## ?? Wealth Management Tiers
 
-| Feature | Free | Professional (€10/month) | Enterprise (€1,000/month) |
-|---------|------|-------------------------|--------------------------|
-| Devices | 1 | 5 | Unlimited |
-| API Calls/day | 10 | 1,000 | Unlimited |
-| Support | Standard | Priority | Dedicated |
-| SLA | None | 99.5% | 99.9% |
+Service tiers are automatically determined based on your total Algorand portfolio value:
+
+| Tier | Portfolio Value | Devices | Support | SLA | Features |
+|------|----------------|---------|---------|-----|----------|
+| Free | < €10,000 | 1 | Community | Best effort | Basic account management |
+| Professional | €10,000 - €1,000,000 | 5 | Priority | 99.5% | Portfolio analytics, risk tools |
+| Enterprise | > €1,000,000 | Unlimited | Dedicated | 99.9% | Custom integrations, account manager |
+
+**Note:** No monthly fees - tier assignment is automatic based on portfolio value calculated daily using real-time market prices.
 
 ## ?? Deployment
 
-### Docker Deployment
-```bash
-docker build -t biatec-mcp-server .
+### Docker Deploymentdocker build -t biatec-mcp-server .
 docker run -p 80:80 biatec-mcp-server
-```
-
 ### Environment Variables
 - `ASPNETCORE_ENVIRONMENT`: Development/Production
 - `ConnectionStrings__Redis`: Redis connection string

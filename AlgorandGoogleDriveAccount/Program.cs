@@ -102,6 +102,7 @@ namespace AlgorandGoogleDriveAccount
             builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.IDriveService, AlgorandGoogleDriveAccount.BusinessLogic.DriveService>();
             builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.IGoogleAuthorizationService, AlgorandGoogleDriveAccount.BusinessLogic.GoogleAuthorizationService>();
             builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.ICrossAccountProtectionService, AlgorandGoogleDriveAccount.BusinessLogic.CrossAccountProtectionService>();
+            builder.Services.AddScoped<AlgorandGoogleDriveAccount.BusinessLogic.IPortfolioValuationService, AlgorandGoogleDriveAccount.BusinessLogic.PortfolioValuationService>();
             
             // Add HTTP context accessor for authorization service
             builder.Services.AddHttpContextAccessor();

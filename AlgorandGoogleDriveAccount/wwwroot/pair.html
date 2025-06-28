@@ -121,6 +121,7 @@
         <div class="button-container">
             <button onclick="pairDevice()">Pair Device</button>
             <button onclick="requestDriveAccess()" id="driveAccessBtn" disabled>Request Drive Access</button>
+            <button onclick="checkPortfolio()" id="portfolioBtn" disabled>Check Portfolio</button>
             <button onclick="checkSecurityStatus()" id="securityBtn" disabled>Check Security Status</button>
             <button onclick="getAccessToken()" id="getTokenBtn" disabled>Get Access Token</button>
             <button onclick="getDeviceInfo()" id="getInfoBtn" disabled>Get Device Info</button>
@@ -136,6 +137,7 @@
                 <li>Optionally provide a device name for identification</li>
                 <li>Click "Pair Device" to start the Google OAuth flow with Cross-Account Protection</li>
                 <li>After successful authentication, the access token will be stored in Redis with 1-day expiration</li>
+                <li>Use "Check Portfolio" to see your wealth-based service tier</li>
                 <li>Use "Check Security Status" to verify your account security</li>
                 <li>Use the session ID to retrieve the access token later</li>
             </ol>
@@ -146,11 +148,23 @@
             <ul>
                 <li><strong>GET /api/device/pair-device</strong> - Start device pairing process</li>
                 <li><strong>GET /api/device/paired-device</strong> - OAuth callback endpoint</li>
+                <li><strong>GET /api/device/portfolio/{sessionId}</strong> - Check portfolio value and service tier</li>
                 <li><strong>GET /api/device/security-status/{sessionId}</strong> - Check Cross-Account Protection status</li>
                 <li><strong>GET /api/device/access-token/{sessionId}</strong> - Get access token for paired device</li>
                 <li><strong>GET /api/device/info/{sessionId}</strong> - Get device information</li>
                 <li><strong>DELETE /api/device/unpair/{sessionId}</strong> - Unpair device</li>
             </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>💰 Wealth Management Tiers:</h3>
+            <p>Your service tier is automatically determined based on your total Algorand portfolio value:</p>
+            <ul>
+                <li><strong>💰 Free Tier:</strong> Portfolio &lt; €10,000 - Basic features, 1 device</li>
+                <li><strong>⭐ Professional:</strong> €10,000 - €1,000,000 - Enhanced features, 5 devices</li>
+                <li><strong>🏢 Enterprise:</strong> &gt; €1,000,000 - Premium features, unlimited devices</li>
+            </ul>
+            <p>No monthly fees - tier assignment is automatic based on portfolio value calculated daily using real-time market prices.</p>
         </div>
 
         <div class="info-box">
@@ -180,6 +194,7 @@
 
         function enableButtons() {
             document.getElementById('driveAccessBtn').disabled = false;
+            document.getElementById('portfolioBtn').disabled = false;
             document.getElementById('securityBtn').disabled = false;
             document.getElementById('getTokenBtn').disabled = false;
             document.getElementById('getInfoBtn').disabled = false;
@@ -188,6 +203,7 @@
 
         function disableButtons() {
             document.getElementById('driveAccessBtn').disabled = true;
+            document.getElementById('portfolioBtn').disabled = true;
             document.getElementById('securityBtn').disabled = true;
             document.getElementById('getTokenBtn').disabled = true;
             document.getElementById('getInfoBtn').disabled = true;
@@ -222,6 +238,57 @@
 
             showResult('Requesting Google Drive access permissions...', 'info');
             window.location.href = `/api/device/request-drive-access/${encodeURIComponent(currentSessionId)}`;
+        }
+
+        async function checkPortfolio() {
+            if (!currentSessionId) {
+                currentSessionId = document.getElementById('sessionId').value.trim();
+            }
+
+            if (!currentSessionId) {
+                showResult('Please enter a session ID first.', 'error');
+                return;
+            }
+
+            try {
+                showResult('Checking portfolio and service tier...', 'info');
+                const response = await fetch(`/api/device/portfolio/${encodeURIComponent(currentSessionId)}`);
+                
+                if (response.ok) {
+                    const portfolioData = await response.json();
+                    let portfolioHtml = `<h4>💰 Portfolio & Service Tier</h4>`;
+                    portfolioHtml += `<p><strong>Email:</strong> ${portfolioData.email}</p>`;
+                    portfolioHtml += `<p><strong>Portfolio Value:</strong> €${portfolioData.portfolio.totalValueEur.toLocaleString()}</p>`;
+                    portfolioHtml += `<p><strong>Algorand Balance:</strong> ${portfolioData.portfolio.algorandBalance.toLocaleString()} ALGO</p>`;
+                    portfolioHtml += `<p><strong>Current Tier:</strong> ${portfolioData.portfolio.currentTier}</p>`;
+                    portfolioHtml += `<p><strong>Last Updated:</strong> ${new Date(portfolioData.portfolio.lastUpdated).toLocaleString()}</p>`;
+                    
+                    if (portfolioData.tierBenefits) {
+                        portfolioHtml += `<h5>🎯 Tier Benefits (${portfolioData.tierBenefits.tier}):</h5>`;
+                        portfolioHtml += `<p><strong>Portfolio Range:</strong> ${portfolioData.tierBenefits.portfolioRange}</p>`;
+                        portfolioHtml += `<p><strong>Max Devices:</strong> ${portfolioData.tierBenefits.devices}</p>`;
+                        portfolioHtml += `<p><strong>Support Level:</strong> ${portfolioData.tierBenefits.support}</p>`;
+                        portfolioHtml += `<p><strong>SLA:</strong> ${portfolioData.tierBenefits.sla}</p>`;
+                        
+                        if (portfolioData.tierBenefits.features) {
+                            portfolioHtml += `<p><strong>Features:</strong></p><ul>`;
+                            portfolioData.tierBenefits.features.forEach(feature => {
+                                portfolioHtml += `<li>${feature}</li>`;
+                            });
+                            portfolioHtml += `</ul>`;
+                        }
+                    }
+                    
+                    const tierType = portfolioData.portfolio.currentTier === 'Free' ? 'info' : 
+                                   (portfolioData.portfolio.currentTier === 'Enterprise' ? 'success' : 'info');
+                    showResult(portfolioHtml, tierType);
+                } else {
+                    const error = await response.text();
+                    showResult(`Error checking portfolio: ${error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`Network error checking portfolio: ${error.message}`, 'error');
+            }
         }
 
         async function checkSecurityStatus() {

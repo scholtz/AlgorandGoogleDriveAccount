@@ -27,6 +27,31 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
         Task<ReauthenticationResult> RequestReauthenticationAsync(string userId, string[] scopes);
     }
 
+    public interface IPortfolioValuationService
+    {
+        Task<decimal> GetPortfolioValueAsync(string email);
+        Task<ServiceTier> GetServiceTierAsync(string email);
+        Task<PortfolioSummary> GetPortfolioSummaryAsync(string email);
+        Task UpdatePortfolioValuationAsync(string email);
+    }
+
+    public enum ServiceTier
+    {
+        Free,
+        Professional,
+        Enterprise
+    }
+
+    public class PortfolioSummary
+    {
+        public decimal TotalValueEur { get; set; }
+        public ServiceTier CurrentTier { get; set; }
+        public DateTime LastUpdated { get; set; }
+        public int AccountCount { get; set; }
+        public decimal AlgorandBalance { get; set; }
+        public decimal AssetValue { get; set; }
+    }
+
     public enum SecurityEventType
     {
         SuspiciousLogin,
