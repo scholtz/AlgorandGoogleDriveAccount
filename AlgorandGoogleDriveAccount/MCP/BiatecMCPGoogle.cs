@@ -27,14 +27,14 @@ namespace AlgorandGoogleDriveAccount.MCP
         private readonly GoogleDriveRepository _googleDriveRepository;
         private readonly IDevicePairingService _devicePairingService;
         private readonly IOptionsMonitor<Model.Configuration> _config;
-        private readonly IOptionsMonitor<AlgodConfiguration> _algodConfig;
+        private readonly IOptionsMonitor<AlgorandGoogleDriveAccount.Model.AlgodConfiguration> _algodConfig;
 
         public BiatecMCPGoogle(
             IDistributedCache cache,
             GoogleDriveRepository googleDriveRepository,
             IDevicePairingService devicePairingService,
             IOptionsMonitor<Model.Configuration> config,
-            IOptionsMonitor<AlgodConfiguration> algodConfig
+            IOptionsMonitor<AlgorandGoogleDriveAccount.Model.AlgodConfiguration> algodConfig
             )
         {
             _cache = cache;

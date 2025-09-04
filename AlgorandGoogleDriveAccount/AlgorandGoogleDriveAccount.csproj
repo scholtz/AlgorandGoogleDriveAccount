@@ -8,14 +8,29 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Algorand4" Version="4.0.3.2025051817" />
-    <PackageReference Include="AlgorandARC76Account" Version="1.0.2" />
+    <OpenApiReference Include="OpenAPIs\swagger.json" ClassName="BiatecTokensApi">
+      <SourceUri>https://api.tokens.biatec.io/swagger/v1/swagger.json</SourceUri>
+    </OpenApiReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Algorand4" Version="4.1.2.2025080702" />
+    <PackageReference Include="AlgorandARC76Account" Version="1.1.0" />
     <PackageReference Include="Google.Apis.Auth" Version="1.70.0" />
     <PackageReference Include="Google.Apis.Auth.AspNetCore3" Version="1.70.0" />
-    <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3783" />
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.6" />
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.70.0.3883" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Client" Version="9.0.8">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.8" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.3.0-preview.1" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="NSwag.ApiDescription.Client" Version="14.5.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.4" />
   </ItemGroup>
 
 </Project>

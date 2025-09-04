@@ -1,0 +1,2108 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Biatec Tokens API",
+    "description": "# Biatec Tokens API\n\nA comprehensive API for deploying and managing various types of tokens on different blockchain networks, including ERC20 tokens on EVM chains, ARC3 tokens, and ARC200 tokens on Algorand.\n\n## Features\n\n- **ERC20 Token Deployment**: Deploy mintable and preminted ERC20 tokens on EVM chains (Base blockchain)\n- **Algorand Standard Assets (ASA)**: Create fungible tokens, NFTs, and fractional NFTs on Algorand\n- **ARC3 Token Support**: Deploy ARC3-compliant tokens with rich metadata and IPFS integration\n- **ARC200 Token Support**: Create ARC200 tokens with mintable and preminted variants\n- **Authentication**: Secure API access using ARC-0014 Algorand authentication\n- **Multi-Network Support**: Support for various Algorand networks and EVM chains\n\n## Supported Token Types\n\n### EVM Chains (Base Blockchain)\n- **ERC20 Mintable**: Advanced ERC20 tokens with minting, burning, and pausable functionality\n- **ERC20 Preminted**: Standard ERC20 tokens with fixed supply\n\n### Algorand Network\n- **ASA Fungible Tokens**: Standard Algorand assets for fungible tokens\n- **ASA NFTs**: Non-fungible tokens with quantity of 1\n- **ASA Fractional NFTs**: Fractional non-fungible tokens with custom supply\n- **ARC3 Fungible Tokens**: ARC3-compliant tokens with rich metadata and IPFS support\n- **ARC3 NFTs**: ARC3-compliant non-fungible tokens with metadata\n- **ARC3 Fractional NFTs**: ARC3-compliant fractional tokens\n- **ARC200 Mintable**: ARC200 tokens with minting capabilities\n- **ARC200 Preminted**: ARC200 tokens with fixed supply\n\n## Getting Started\n\n### Prerequisites\n\n- .NET 8.0 SDK\n- Visual Studio 2022 or Visual Studio Code\n- Algorand account with sufficient funds for transactions\n- Access to supported blockchain networks\n\n### Installation\n\n1. Clone the repository:\n```bash\ngit clone <repository-url>\ncd BiatecTokensApi\n```\n\n2. Restore NuGet packages:\n```bash\ndotnet restore\n```\n\n3. Configure the application settings in `appsettings.json`:\n```json\n{\n  \"App\": {\n    \"Account\": \"your-mnemonic-phrase-here\"\n  },\n  \"EVMChains\": [\n    {\n      \"RpcUrl\": \"https://mainnet.base.org\",\n      \"ChainId\": 8453,\n      \"GasLimit\": 4500000\n    }\n  ],\n  \"IPFSConfig\": {\n    \"ApiUrl\": \"https://ipfs-api.biatec.io\",\n    \"GatewayUrl\": \"https://ipfs.biatec.io/ipfs\",\n    \"Username\": \"\",\n    \"Password\": \"\",\n    \"TimeoutSeconds\": 30,\n    \"MaxFileSizeBytes\": 10485760,\n    \"ValidateContentHash\": true\n  },\n  \"AlgorandAuthentication\": {\n    \"Realm\": \"BiatecTokens#ARC14\",\n    \"CheckExpiration\": true,\n    \"Debug\": false,\n    \"AllowedNetworks\": {\n      \"SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=\": {\n        \"Server\": \"https://testnet-api.4160.nodely.dev\",\n        \"Token\": \"\",\n        \"Header\": \"\"\n      }\n    }\n  }\n}\n```\n\n4. Run the application:\n```bash\ndotnet run\n```\n\n5. Access the API documentation at `https://localhost:7000/swagger` (or your configured port)\n\n## Authentication\n\nThe API uses ARC-0014 Algorand authentication. You need to include an `Authorization` header with your authentication transaction.\n\nRealm: ***BiatecTokens#ARC14***\n\n### Example Authentication Header:\n```\nAuthorization: SigTx <your-arc14-signed-transaction>\n```\n\n## API Endpoints\n\n### Base URL\n```\nhttps://localhost:7000/api/v1/token\n```\n\n### ERC20 Tokens (Base Blockchain)\n\n#### Deploy Mintable ERC20 Token\n```http\nPOST /erc20-mintable/create\n```\n\n**Request Body:**\n```json\n{\n  \"name\": \"My Mintable Token\",\n  \"symbol\": \"MMT\",\n  \"initialSupply\": 1000000,\n  \"decimals\": 18,\n  \"initialSupplyReceiver\": \"0x742d35Cc6634C0532925a3b8D4434d3C7f2db9bc\",\n  \"chainId\": 8453,\n  \"cap\": 10000000\n}\n```\n\n#### Deploy Preminted ERC20 Token\n```http\nPOST /erc20-preminted/create\n```\n\n**Request Body:**\n```json\n{\n  \"name\": \"My Preminted Token\",\n  \"symbol\": \"MPT\",\n  \"initialSupply\": 1000000,\n  \"decimals\": 18,\n  \"initialSupplyReceiver\": \"0x742d35Cc6634C0532925a3b8D4434d3C7f2db9bc\",\n  \"chainId\": 8453\n}\n```\n\n### ASA Tokens (Algorand)\n\n#### Deploy ASA Fungible Token\n```http\nPOST /asa-ft/create\n```\n\n**Request Body:**\n```json\n{\n  \"name\": \"My ASA Token\",\n  \"unitName\": \"MAT\",\n  \"totalSupply\": 1000000,\n  \"decimals\": 6,\n  \"network\": \"testnet-v1.0\",\n  \"defaultFrozen\": false,\n  \"managerAddress\": \"ALGONAUTSPIUHDCX3SLFXOFDUKOE4VY36XV4JX2JHQTWJNKVBKPEBQACRY\",\n  \"url\": \"https://example.com\"\n}\n```\n\n#### Deploy ASA NFT\n```http\nPOST /asa-nft/create\n```\n\n**Request Body:**\n```json\n{\n  \"name\": \"My NFT\",\n  \"unitName\": \"NFT\",\n  \"network\": \"testnet-v1.0\",\n  \"defaultFrozen\": false,\n  \"url\": \"https://example.com/nft-metadata\"\n}\n```\n\n#### Deploy ASA Fractional NFT\n```http\nPOST /asa-fnft/create\n```\n\n**Request Body:**\n```json\n{\n  \"name\": \"My Fractional NFT\",\n  \"unitName\": \"FNFT\",\n  \"totalSupply\": 100,\n  \"decimals\": 0,\n  \"network\": \"testnet-v1.0\",\n  \"defaultFrozen\": false\n}\n```\n\n### ARC3 Tokens (Algorand with Rich Metadata)\n\n#### Deploy ARC3 Fungible Token\n```http\nPOST /arc3-ft/create\n```\n\n**Request Body:**\n```json\n{\n  \"name\": \"My ARC3 Token\",\n  \"unitName\": \"ARC3\",\n  \"totalSupply\": 1000000,\n  \"decimals\": 6,\n  \"network\": \"testnet-v1.0\",\n  \"defaultFrozen\": false,\n  \"metadata\": {\n    \"name\": \"My ARC3 Token\",\n    \"description\": \"A token with rich metadata\",\n    \"image\": \"https://example.com/image.png\",\n    \"properties\": {\n      \"category\": \"utility\",\n      \"rarity\": \"common\"\n    }\n  }\n}\n```\n\n#### Deploy ARC3 NFT\n```http\nPOST /arc3-nft/create\n```\n\n**Request Body:**\n```json\n{\n  \"name\": \"My ARC3 NFT\",\n  \"unitName\": \"NFT\",\n  \"network\": \"testnet-v1.0\",\n  \"defaultFrozen\": false,\n  \"metadata\": {\n    \"name\": \"Unique NFT\",\n    \"description\": \"A unique digital asset\",\n    \"image\": \"https://example.com/nft.png\",\n    \"properties\": {\n      \"trait_type\": \"Color\",\n      \"value\": \"Blue\"\n    }\n  }\n}\n```\n\n#### Deploy ARC3 Fractional NFT\n```http\nPOST /arc3-fnft/create\n```\n\n**Request Body:**\n```json\n{\n  \"name\": \"My Fractional ARC3 NFT\",\n  \"unitName\": \"FNFT\",\n  \"totalSupply\": 100,\n  \"decimals\": 0,\n  \"network\": \"testnet-v1.0\",\n  \"defaultFrozen\": false,\n  \"metadata\": {\n    \"name\": \"Fractional Art Piece\",\n    \"description\": \"A fractional ownership of digital art\",\n    \"image\": \"https://example.com/art.png\"\n  }\n}\n```\n\n### ARC200 Tokens (Algorand Smart Contracts)\n\n#### Deploy ARC200 Mintable Token\n```http\nPOST /arc200-mintable/create\n```\n\n**Request Body:**\n```json\n{\n  \"name\": \"My ARC200 Mintable Token\",\n  \"symbol\": \"ARC200M\",\n  \"initialSupply\": 1000000,\n  \"decimals\": 18,\n  \"network\": \"testnet-v1.0\",\n  \"cap\": 10000000\n}\n```\n\n#### Deploy ARC200 Preminted Token\n```http\nPOST /arc200-preminted/create\n```\n\n**Request Body:**\n```json\n{\n  \"name\": \"My ARC200 Preminted Token\",\n  \"symbol\": \"ARC200P\",\n  \"initialSupply\": 1000000,\n  \"decimals\": 18,\n  \"network\": \"testnet-v1.0\"\n}\n```\n\n## Response Format\n\nAll endpoints return responses in the following format:\n\n### Success Response\n```json\n{\n  \"success\": true,\n  \"transactionId\": \"transaction-hash\",\n  \"assetId\": 123456,\n  \"creatorAddress\": \"creator-address\",\n  \"confirmedRound\": 12345,\n  \"errorMessage\": null\n}\n```\n\n### Error Response\n```json\n{\n  \"success\": false,\n  \"transactionId\": null,\n  \"assetId\": null,\n  \"creatorAddress\": null,\n  \"confirmedRound\": null,\n  \"errorMessage\": \"Error description\"\n}\n```\n\n## Supported Networks\n\n### Algorand Networks\n- `mainnet-v1.0` - Algorand Mainnet\n- `testnet-v1.0` - Algorand Testnet\n- `betanet-v1.0` - Algorand Betanet\n- `voimain-v1.0` - Voi Mainnet\n- `aramidmain-v1.0` - Aramid Mainnet\n\n### EVM Networks\n- **Base Mainnet** (Chain ID: 8453)\n\n## Error Handling\n\nThe API returns standard HTTP status codes:\n\n- `200 OK` - Successful operation\n- `400 Bad Request` - Invalid request parameters\n- `401 Unauthorized` - Authentication required\n- `403 Forbidden` - Insufficient permissions\n- `500 Internal Server Error` - Server error\n\n## Rate Limiting\n\nPlease be mindful of blockchain network limitations and transaction fees when making requests. Each token deployment creates a blockchain transaction that requires network fees.\n\n## Security Considerations\n\n1. **Keep your mnemonic phrase secure** - Never commit it to version control\n2. **Use environment variables** for sensitive configuration\n3. **Validate all inputs** before making API calls\n4. **Monitor transaction costs** on mainnet networks\n\n## Development and Testing\n\n### Running Tests\n```bash\ndotnet test BiatecTokensTests\n```\n\n### Development Environment\nThe API includes Swagger/OpenAPI documentation available at `/swagger` endpoint when running in development mode.\n\n## Contributing\n\n1. Fork the repository\n2. Create a feature branch\n3. Make your changes\n4. Add tests for new functionality\n5. Submit a pull request\n\n## Client generators\n\n```\ncd BiatecTokensApi/Generated\ndocker run --rm -v \".:/app/out\" scholtz2/dotnet-avm-generated-client:latest dotnet client-generator.dll --namespace \"BiatecTokensApi.Generated\" --url https://raw.githubusercontent.com/scholtz/arc-1400/refs/heads/main/projects/arc-1400/smart_contracts/artifacts/security_token/Arc1644.arc56.json\ndocker run --rm -v \".:/app/out\" scholtz2/dotnet-avm-generated-client:latest dotnet client-generator.dll --namespace \"BiatecTokensApi.Generated\" --url https://raw.githubusercontent.com/scholtz/arc200/refs/heads/main/contracts/artifacts/Arc200.arc56.json\n```\n\n## License\n\nThis project is licensed under the MIT License - see the LICENSE file for details.\n\n## Support\n\nFor support and questions:\n- Open an issue on GitHub\n- Contact the development team\n- Check the API documentation at `/swagger`\n\n## Changelog\n\n### Version 1.0\n- Initial release\n- Support for ERC20, ASA, ARC3, and ARC200 tokens\n- Multi-network support\n- ARC-0014 authentication integration\n- IPFS metadata support for ARC3 tokens",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/token/erc20-mintable/create": {
+      "post": {
+        "tags": [
+          "Token"
+        ],
+        "summary": "Deploys a new BiatecToken on the Base blockchain.\nBiatecToken is an advanced ERC20 token with additional features:\n- Minting capabilities (owner and authorized minters)\n- Burning capabilities (burn and burnFrom)\n- Pausable functionality (owner can pause/unpause transfers)\n- Ownable (ownership transfer functionality)\nThe deployer automatically becomes the owner and first minter.\nThe initial token supply can be sent to a specified address or the deployer.",
+        "requestBody": {
+          "description": "Token deployment parameters including optional initial supply receiver",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ERC20MintableTokenDeploymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ERC20MintableTokenDeploymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ERC20MintableTokenDeploymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EVMTokenDeploymentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EVMTokenDeploymentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EVMTokenDeploymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "oauth2": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/token/erc20-preminted/create": {
+      "post": {
+        "tags": [
+          "Token"
+        ],
+        "summary": "Deploys a new ERC20 preminted token based on the provided deployment request.",
+        "description": "This method logs the deployment status and any errors encountered during the\n            process.",
+        "requestBody": {
+          "description": "The BiatecTokensApi.Models.ERC20.Request.ERC20TokenDeploymentRequest containing the parameters for the token deployment. Must be a\n            valid model; otherwise, a 400 Bad Request response is returned.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ERC20PremintedTokenDeploymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ERC20PremintedTokenDeploymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ERC20PremintedTokenDeploymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/EVMTokenDeploymentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EVMTokenDeploymentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EVMTokenDeploymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "oauth2": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/token/asa-ft/create": {
+      "post": {
+        "tags": [
+          "Token"
+        ],
+        "summary": "Creates an ARC3 fungible token on the specified network.",
+        "description": "This method processes a request to deploy an ARC3 fungible token using the provided\n            deployment parameters. It validates the request model and interacts with the token service to create the\n            token. If the token creation is successful, the method returns a response containing the asset ID and\n            transaction details. If the creation fails, an error response is returned.",
+        "requestBody": {
+          "description": "The deployment request containing the parameters required to create the ARC3 fungible token. This includes\n            details such as the network, token properties, and other configuration settings.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ASAFungibleTokenDeploymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ASAFungibleTokenDeploymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ASAFungibleTokenDeploymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ASATokenDeploymentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ASATokenDeploymentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ASATokenDeploymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "oauth2": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/token/asa-nft/create": {
+      "post": {
+        "tags": [
+          "Token"
+        ],
+        "summary": "Creates an ASA NFT (Algorand Standard Asset Non-Fungible Token) based on the provided deployment request. It creates basic ASA token with quantity of 1. If you want to serve also the picture for the NFT token, use the ARC3 NFT standard instead.",
+        "description": "This method validates the input request and attempts to create an ASA NFT using the\n            provided parameters.  If the operation is successful, the response includes details such as the asset ID and\n            transaction hash.  In case of failure, appropriate error information is returned.",
+        "requestBody": {
+          "description": "The deployment request containing the necessary parameters for creating the ASA NFT,  including network\n            details and token-specific configurations. This parameter cannot be null.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ASANonFungibleTokenDeploymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ASANonFungibleTokenDeploymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ASANonFungibleTokenDeploymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ASATokenDeploymentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ASATokenDeploymentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ASATokenDeploymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "oauth2": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/token/asa-fnft/create": {
+      "post": {
+        "tags": [
+          "Token"
+        ],
+        "summary": "Creates an ASA NFT (Algorand Standard Asset Non-Fungible Token) based on the provided deployment request. It creates basic ASA token with quantity of 1. If you want to serve also the picture for the NFT token, use the ARC3 NFT standard instead.",
+        "description": "This method validates the input request and attempts to create an ASA NFT using the\n            provided parameters.  If the operation is successful, the response includes details such as the asset ID and\n            transaction hash.  In case of failure, appropriate error information is returned.",
+        "requestBody": {
+          "description": "The deployment request containing the necessary parameters for creating the ASA NFT,  including network\n            details and token-specific configurations. This parameter cannot be null.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ASAFractionalNonFungibleTokenDeploymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ASAFractionalNonFungibleTokenDeploymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ASAFractionalNonFungibleTokenDeploymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ASATokenDeploymentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ASATokenDeploymentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ASATokenDeploymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "oauth2": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/token/arc3-ft/create": {
+      "post": {
+        "tags": [
+          "Token"
+        ],
+        "summary": "Creates a new ARC3 Fungible Token on the Algorand blockchain.\nARC3 tokens are Algorand Standard Assets (ASAs) that comply with the ARC3 metadata standard:\n- Support for rich metadata including images, descriptions, and properties\n- IPFS-based metadata storage with integrity verification\n- Localization support for international use\n- Optional management features (freeze, clawback, reserve)\nThe creator becomes the initial manager and can configure additional roles.",
+        "requestBody": {
+          "description": "ARC3 token creation parameters including metadata",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC3FungibleTokenDeploymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC3FungibleTokenDeploymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC3FungibleTokenDeploymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC3TokenDeploymentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC3TokenDeploymentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC3TokenDeploymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "oauth2": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/token/arc3-nft/create": {
+      "post": {
+        "tags": [
+          "Token"
+        ],
+        "summary": "Creates an ARC3-compliant non-fungible token (NFT) on the specified network.",
+        "description": "This method accepts a deployment request containing the necessary parameters to\n            create an ARC3 NFT. It validates the request model and interacts with the token service to perform the\n            creation. If the operation is successful, the method returns the details of the created token, including the\n            asset ID and transaction hash. In case of failure, it returns an appropriate error response.",
+        "requestBody": {
+          "description": "The deployment request containing the parameters required to create the ARC3 NFT. This includes details such\n            as the network, metadata, and other token-specific configurations.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC3NonFungibleTokenDeploymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC3NonFungibleTokenDeploymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC3NonFungibleTokenDeploymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC3TokenDeploymentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC3TokenDeploymentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC3TokenDeploymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "oauth2": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/token/arc3-fnft/create": {
+      "post": {
+        "tags": [
+          "Token"
+        ],
+        "summary": "Creates an ARC3 fractional non-fungible token (FNFT) based on the provided deployment request.",
+        "description": "This method processes the deployment request for an ARC3 FNFT and returns the result\n            of the operation. The request must include all required parameters for token creation, and the model state\n            must be valid. If the operation succeeds, the response contains details about the created token, including\n            the asset ID and transaction hash. If the operation fails, an appropriate error response is\n            returned.",
+        "requestBody": {
+          "description": "The deployment request containing the necessary parameters for creating the ARC3 fractional token. This must\n            be a valid BiatecTokensApi.Models.ARC3.Request.ARC3NonFungibleTokenDeploymentRequest object.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC3FractionalNonFungibleTokenDeploymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC3FractionalNonFungibleTokenDeploymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC3FractionalNonFungibleTokenDeploymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC3TokenDeploymentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC3TokenDeploymentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC3TokenDeploymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "oauth2": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/token/arc200-mintable/create": {
+      "post": {
+        "tags": [
+          "Token"
+        ],
+        "summary": "Creates a new ARC200 mintable token based on the provided deployment request.",
+        "description": "This method validates the input request and attempts to create an ARC200 mintable\n            token using the provided details. If the operation succeeds, the response includes the asset ID and\n            transaction details. In case of failure, an appropriate error response is returned.",
+        "requestBody": {
+          "description": "The deployment request containing the configuration details for the ARC200 mintable token. This includes\n            information such as the token name, symbol, initial supply, and network.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC200MintableTokenDeploymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC200MintableTokenDeploymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC200MintableTokenDeploymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC200TokenDeploymentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC200TokenDeploymentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC200TokenDeploymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "oauth2": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/token/arc200-preminted/create": {
+      "post": {
+        "tags": [
+          "Token"
+        ],
+        "summary": "Creates a new ARC200 preminted fungible token based on the provided deployment request.",
+        "description": "This method validates the input request and attempts to create an ARC200 preminted\n            token using the provided details. If the operation is successful, the response includes the asset ID and\n            transaction details. If the operation fails, an appropriate error response is returned.",
+        "requestBody": {
+          "description": "The deployment request containing the details required to create the ARC200 preminted token, including\n            network information and token parameters. This parameter cannot be null and must pass model validation.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC200PremintedTokenDeploymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC200PremintedTokenDeploymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC200PremintedTokenDeploymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC3TokenDeploymentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC3TokenDeploymentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC3TokenDeploymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "oauth2": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/token/arc1400-mintable/create": {
+      "post": {
+        "tags": [
+          "Token"
+        ],
+        "summary": "Creates a new ARC200 mintable token based on the provided deployment request.",
+        "description": "This method validates the input request and attempts to create an ARC200 mintable\n            token using the provided details. If the operation succeeds, the response includes the asset ID and\n            transaction details. In case of failure, an appropriate error response is returned.",
+        "requestBody": {
+          "description": "The deployment request containing the configuration details for the ARC200 mintable token. This includes\n            information such as the token name, symbol, initial supply, and network.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC1400MintableTokenDeploymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC1400MintableTokenDeploymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ARC1400MintableTokenDeploymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC200TokenDeploymentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC200TokenDeploymentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ARC200TokenDeploymentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "oauth2": [ ]
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ARC1400MintableTokenDeploymentRequest": {
+        "required": [
+          "cap",
+          "initialSupply",
+          "name",
+          "network",
+          "symbol"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The name of the ARC1400 token"
+          },
+          "symbol": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The symbol of the ARC1400 token (ticker)"
+          },
+          "initialSupply": {
+            "type": "number",
+            "description": "Initial supply of tokens (will be multiplied by decimals)",
+            "format": "double"
+          },
+          "decimals": {
+            "type": "integer",
+            "description": "Number of decimals for the token (typically 18)",
+            "format": "int32"
+          },
+          "initialSupplyReceiver": {
+            "type": "string",
+            "description": "Address that will receive the initial token supply. \nIf not specified, the deployer address will be used.",
+            "nullable": true
+          },
+          "network": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Algorand network to deploy to (mainnet-v1.0, testnet-v1.0, betanet-v1.0, voimain-v1.0, aramidmain-v1.0)"
+          },
+          "isMintable": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the item can be minted.",
+            "readOnly": true
+          },
+          "cap": {
+            "type": "number",
+            "description": "Cap of tokens (will be multiplied by decimals)",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a request to deploy an ERC-20 token with mintable functionality."
+      },
+      "ARC200MintableTokenDeploymentRequest": {
+        "required": [
+          "cap",
+          "initialSupply",
+          "name",
+          "network",
+          "symbol"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The name of the ARC200 token"
+          },
+          "symbol": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The symbol of the ARC200 token (ticker)"
+          },
+          "initialSupply": {
+            "type": "number",
+            "description": "Initial supply of tokens (will be multiplied by decimals)",
+            "format": "double"
+          },
+          "decimals": {
+            "type": "integer",
+            "description": "Number of decimals for the token (typically 18)",
+            "format": "int32"
+          },
+          "initialSupplyReceiver": {
+            "type": "string",
+            "description": "Address that will receive the initial token supply. \nIf not specified, the deployer address will be used.",
+            "nullable": true
+          },
+          "network": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Algorand network to deploy to (mainnet-v1.0, testnet-v1.0, betanet-v1.0, voimain-v1.0, aramidmain-v1.0)"
+          },
+          "isMintable": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the item can be minted.",
+            "readOnly": true
+          },
+          "cap": {
+            "type": "number",
+            "description": "Cap of tokens (will be multiplied by decimals)",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a request to deploy an ERC-20 token with mintable functionality."
+      },
+      "ARC200PremintedTokenDeploymentRequest": {
+        "required": [
+          "initialSupply",
+          "name",
+          "network",
+          "symbol"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The name of the ARC200 token"
+          },
+          "symbol": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The symbol of the ARC200 token (ticker)"
+          },
+          "initialSupply": {
+            "type": "number",
+            "description": "Initial supply of tokens (will be multiplied by decimals)",
+            "format": "double"
+          },
+          "decimals": {
+            "type": "integer",
+            "description": "Number of decimals for the token (typically 18)",
+            "format": "int32"
+          },
+          "initialSupplyReceiver": {
+            "type": "string",
+            "description": "Address that will receive the initial token supply. \nIf not specified, the deployer address will be used.",
+            "nullable": true
+          },
+          "network": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Algorand network to deploy to (mainnet-v1.0, testnet-v1.0, betanet-v1.0, voimain-v1.0, aramidmain-v1.0)"
+          },
+          "isMintable": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the item can be minted.",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a request to deploy a non-mintable ARC200 token contract on the blockchain."
+      },
+      "ARC200TokenDeploymentResponse": {
+        "required": [
+          "appId"
+        ],
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message if deployment failed",
+            "nullable": true
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Status of the deployment"
+          },
+          "transactionId": {
+            "type": "string",
+            "description": "Transaction ID of the asset creation",
+            "nullable": true
+          },
+          "assetId": {
+            "type": "integer",
+            "description": "Asset ID of the created token",
+            "format": "int64",
+            "nullable": true
+          },
+          "creatorAddress": {
+            "type": "string",
+            "description": "Creator account address",
+            "nullable": true
+          },
+          "confirmedRound": {
+            "type": "integer",
+            "description": "Round number when the transaction was confirmed",
+            "format": "int64",
+            "nullable": true
+          },
+          "appId": {
+            "type": "integer",
+            "description": "Deployed token contract app id",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents the response received after deploying an ERC-20 token contract."
+      },
+      "ARC3FractionalNonFungibleTokenDeploymentRequest": {
+        "required": [
+          "metadata",
+          "name",
+          "network",
+          "totalSupply",
+          "unitName"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": "string",
+            "description": "The name of the ARC3 token"
+          },
+          "unitName": {
+            "maxLength": 8,
+            "minLength": 0,
+            "type": "string",
+            "description": "The unit name (symbol) of the ARC3 token"
+          },
+          "url": {
+            "maxLength": 96,
+            "minLength": 0,
+            "type": "string",
+            "description": "Optional URL for token metadata",
+            "nullable": true
+          },
+          "metadataHash": {
+            "type": "string",
+            "description": "Optional metadata hash (32 bytes)",
+            "format": "byte",
+            "nullable": true
+          },
+          "defaultFrozen": {
+            "type": "boolean",
+            "description": "Whether the asset can be frozen by the freeze address"
+          },
+          "managerAddress": {
+            "type": "string",
+            "description": "Address that can manage the asset configuration (optional)\nIf not provided, the creator will be the manager",
+            "nullable": true
+          },
+          "reserveAddress": {
+            "type": "string",
+            "description": "Address that can reserve tokens (optional)",
+            "nullable": true
+          },
+          "freezeAddress": {
+            "type": "string",
+            "description": "Address that can freeze/unfreeze tokens (optional)",
+            "nullable": true
+          },
+          "clawbackAddress": {
+            "type": "string",
+            "description": "Address that can clawback tokens (optional)",
+            "nullable": true
+          },
+          "network": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Algorand network to deploy to (mainnet-v1.0, testnet-v1.0, betanet-v1.0, voimain-v1.0, aramidmain-v1.0)"
+          },
+          "totalSupply": {
+            "maximum": 18446744073709552000,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Total supply of tokens",
+            "format": "int64"
+          },
+          "decimals": {
+            "maximum": 19,
+            "minimum": 0,
+            "type": "integer",
+            "description": "Number of decimal places for the token (0-19)",
+            "format": "int32"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/ARC3TokenMetadata"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a request to deploy an ARC3-compliant non-fungible token (NFT)."
+      },
+      "ARC3FungibleTokenDeploymentRequest": {
+        "required": [
+          "metadata",
+          "name",
+          "network",
+          "totalSupply",
+          "unitName"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": "string",
+            "description": "The name of the ARC3 token"
+          },
+          "unitName": {
+            "maxLength": 8,
+            "minLength": 0,
+            "type": "string",
+            "description": "The unit name (symbol) of the ARC3 token"
+          },
+          "url": {
+            "maxLength": 96,
+            "minLength": 0,
+            "type": "string",
+            "description": "Optional URL for token metadata",
+            "nullable": true
+          },
+          "metadataHash": {
+            "type": "string",
+            "description": "Optional metadata hash (32 bytes)",
+            "format": "byte",
+            "nullable": true
+          },
+          "defaultFrozen": {
+            "type": "boolean",
+            "description": "Whether the asset can be frozen by the freeze address"
+          },
+          "managerAddress": {
+            "type": "string",
+            "description": "Address that can manage the asset configuration (optional)\nIf not provided, the creator will be the manager",
+            "nullable": true
+          },
+          "reserveAddress": {
+            "type": "string",
+            "description": "Address that can reserve tokens (optional)",
+            "nullable": true
+          },
+          "freezeAddress": {
+            "type": "string",
+            "description": "Address that can freeze/unfreeze tokens (optional)",
+            "nullable": true
+          },
+          "clawbackAddress": {
+            "type": "string",
+            "description": "Address that can clawback tokens (optional)",
+            "nullable": true
+          },
+          "network": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Algorand network to deploy to (mainnet-v1.0, testnet-v1.0, betanet-v1.0, voimain-v1.0, aramidmain-v1.0)"
+          },
+          "totalSupply": {
+            "maximum": 18446744073709552000,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Total supply of tokens",
+            "format": "int64"
+          },
+          "decimals": {
+            "maximum": 19,
+            "minimum": 0,
+            "type": "integer",
+            "description": "Number of decimal places for the token (0-19)",
+            "format": "int32"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/ARC3TokenMetadata"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for creating an ARC3 Fungible Token on Algorand"
+      },
+      "ARC3NonFungibleTokenDeploymentRequest": {
+        "required": [
+          "metadata",
+          "name",
+          "network",
+          "unitName"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": "string",
+            "description": "The name of the ARC3 token"
+          },
+          "unitName": {
+            "maxLength": 8,
+            "minLength": 0,
+            "type": "string",
+            "description": "The unit name (symbol) of the ARC3 token"
+          },
+          "url": {
+            "maxLength": 96,
+            "minLength": 0,
+            "type": "string",
+            "description": "Optional URL for token metadata",
+            "nullable": true
+          },
+          "metadataHash": {
+            "type": "string",
+            "description": "Optional metadata hash (32 bytes)",
+            "format": "byte",
+            "nullable": true
+          },
+          "defaultFrozen": {
+            "type": "boolean",
+            "description": "Whether the asset can be frozen by the freeze address"
+          },
+          "managerAddress": {
+            "type": "string",
+            "description": "Address that can manage the asset configuration (optional)\nIf not provided, the creator will be the manager",
+            "nullable": true
+          },
+          "reserveAddress": {
+            "type": "string",
+            "description": "Address that can reserve tokens (optional)",
+            "nullable": true
+          },
+          "freezeAddress": {
+            "type": "string",
+            "description": "Address that can freeze/unfreeze tokens (optional)",
+            "nullable": true
+          },
+          "clawbackAddress": {
+            "type": "string",
+            "description": "Address that can clawback tokens (optional)",
+            "nullable": true
+          },
+          "network": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Algorand network to deploy to (mainnet-v1.0, testnet-v1.0, betanet-v1.0, voimain-v1.0, aramidmain-v1.0)"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/ARC3TokenMetadata"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a request to deploy an ARC3-compliant non-fungible token (NFT)."
+      },
+      "ARC3TokenDeploymentResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message if deployment failed",
+            "nullable": true
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Status of the deployment"
+          },
+          "transactionId": {
+            "type": "string",
+            "description": "Transaction ID of the asset creation",
+            "nullable": true
+          },
+          "assetId": {
+            "type": "integer",
+            "description": "Asset ID of the created token",
+            "format": "int64",
+            "nullable": true
+          },
+          "creatorAddress": {
+            "type": "string",
+            "description": "Creator account address",
+            "nullable": true
+          },
+          "confirmedRound": {
+            "type": "integer",
+            "description": "Round number when the transaction was confirmed",
+            "format": "int64",
+            "nullable": true
+          },
+          "tokenInfo": {
+            "$ref": "#/components/schemas/Asset"
+          },
+          "metadataUrl": {
+            "type": "string",
+            "description": "Generated metadata URL if metadata was uploaded",
+            "nullable": true
+          },
+          "metadataHash": {
+            "type": "string",
+            "description": "Hash of the uploaded metadata",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response model for ARC3 token deployment"
+      },
+      "ARC3TokenLocalization": {
+        "required": [
+          "default",
+          "locales",
+          "uri"
+        ],
+        "type": "object",
+        "properties": {
+          "uri": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The URI pattern to fetch localized data from. This URI should contain the substring `{locale}`"
+          },
+          "default": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The locale of the default data within the base JSON"
+          },
+          "locales": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The list of locales for which data is available"
+          },
+          "integrity": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The SHA-256 digests of the localized JSON files (except the default one)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Localization information for ARC3 token metadata"
+      },
+      "ARC3TokenMetadata": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Identifies the asset to which this token represents",
+            "nullable": true
+          },
+          "decimals": {
+            "type": "integer",
+            "description": "The number of decimal places that the token amount should display",
+            "format": "int32",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Describes the asset to which this token represents",
+            "nullable": true
+          },
+          "image": {
+            "type": "string",
+            "description": "A URI pointing to a file with MIME type image/* representing the asset",
+            "nullable": true
+          },
+          "imageIntegrity": {
+            "type": "string",
+            "description": "The SHA-256 digest of the file pointed by the URI image",
+            "nullable": true
+          },
+          "imageMimetype": {
+            "type": "string",
+            "description": "The MIME type of the file pointed by the URI image. MUST be of the form 'image/*'",
+            "nullable": true
+          },
+          "backgroundColor": {
+            "pattern": "^[0-9A-Fa-f]{6}$",
+            "type": "string",
+            "description": "Background color to display the asset. MUST be a six-character hexadecimal without a pre-pended #",
+            "nullable": true
+          },
+          "externalUrl": {
+            "type": "string",
+            "description": "A URI pointing to an external website presenting the asset",
+            "nullable": true
+          },
+          "externalUrlIntegrity": {
+            "type": "string",
+            "description": "The SHA-256 digest of the file pointed by the URI external_url",
+            "nullable": true
+          },
+          "externalUrlMimetype": {
+            "type": "string",
+            "description": "The MIME type of the file pointed by the URI external_url",
+            "nullable": true
+          },
+          "animationUrl": {
+            "type": "string",
+            "description": "A URI pointing to a multi-media file representing the asset",
+            "nullable": true
+          },
+          "animationUrlIntegrity": {
+            "type": "string",
+            "description": "The SHA-256 digest of the file pointed by the URI animation_url",
+            "nullable": true
+          },
+          "animationUrlMimetype": {
+            "type": "string",
+            "description": "The MIME type of the file pointed by the URI animation_url",
+            "nullable": true
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": { },
+            "description": "Arbitrary properties (also called attributes). Values may be strings, numbers, object or arrays",
+            "nullable": true
+          },
+          "extraMetadata": {
+            "type": "string",
+            "description": "Extra metadata in base64",
+            "nullable": true
+          },
+          "localization": {
+            "$ref": "#/components/schemas/ARC3TokenLocalization"
+          }
+        },
+        "additionalProperties": false,
+        "description": "ARC3 compliant token metadata structure"
+      },
+      "ASAFractionalNonFungibleTokenDeploymentRequest": {
+        "required": [
+          "name",
+          "network",
+          "totalSupply",
+          "unitName"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": "string",
+            "description": "The name of the ARC3 token"
+          },
+          "unitName": {
+            "maxLength": 8,
+            "minLength": 0,
+            "type": "string",
+            "description": "The unit name (symbol) of the ARC3 token"
+          },
+          "url": {
+            "maxLength": 96,
+            "minLength": 0,
+            "type": "string",
+            "description": "Optional URL for token metadata",
+            "nullable": true
+          },
+          "metadataHash": {
+            "type": "string",
+            "description": "Optional metadata hash (32 bytes)",
+            "format": "byte",
+            "nullable": true
+          },
+          "defaultFrozen": {
+            "type": "boolean",
+            "description": "Whether the asset can be frozen by the freeze address"
+          },
+          "managerAddress": {
+            "type": "string",
+            "description": "Address that can manage the asset configuration (optional)\nIf not provided, the creator will be the manager",
+            "nullable": true
+          },
+          "reserveAddress": {
+            "type": "string",
+            "description": "Address that can reserve tokens (optional)",
+            "nullable": true
+          },
+          "freezeAddress": {
+            "type": "string",
+            "description": "Address that can freeze/unfreeze tokens (optional)",
+            "nullable": true
+          },
+          "clawbackAddress": {
+            "type": "string",
+            "description": "Address that can clawback tokens (optional)",
+            "nullable": true
+          },
+          "network": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Algorand network to deploy to (mainnet-v1.0, testnet-v1.0, betanet-v1.0, voimain-v1.0, aramidmain-v1.0)"
+          },
+          "totalSupply": {
+            "maximum": 18446744073709552000,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Total supply of tokens",
+            "format": "int64"
+          },
+          "decimals": {
+            "maximum": 19,
+            "minimum": 0,
+            "type": "integer",
+            "description": "Number of decimal places for the token (0-19)",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for creating a Fractional Non-Fungible Token on Algorand"
+      },
+      "ASAFungibleTokenDeploymentRequest": {
+        "required": [
+          "name",
+          "network",
+          "totalSupply",
+          "unitName"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": "string",
+            "description": "The name of the ARC3 token"
+          },
+          "unitName": {
+            "maxLength": 8,
+            "minLength": 0,
+            "type": "string",
+            "description": "The unit name (symbol) of the ARC3 token"
+          },
+          "url": {
+            "maxLength": 96,
+            "minLength": 0,
+            "type": "string",
+            "description": "Optional URL for token metadata",
+            "nullable": true
+          },
+          "metadataHash": {
+            "type": "string",
+            "description": "Optional metadata hash (32 bytes)",
+            "format": "byte",
+            "nullable": true
+          },
+          "defaultFrozen": {
+            "type": "boolean",
+            "description": "Whether the asset can be frozen by the freeze address"
+          },
+          "managerAddress": {
+            "type": "string",
+            "description": "Address that can manage the asset configuration (optional)\nIf not provided, the creator will be the manager",
+            "nullable": true
+          },
+          "reserveAddress": {
+            "type": "string",
+            "description": "Address that can reserve tokens (optional)",
+            "nullable": true
+          },
+          "freezeAddress": {
+            "type": "string",
+            "description": "Address that can freeze/unfreeze tokens (optional)",
+            "nullable": true
+          },
+          "clawbackAddress": {
+            "type": "string",
+            "description": "Address that can clawback tokens (optional)",
+            "nullable": true
+          },
+          "network": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Algorand network to deploy to (mainnet-v1.0, testnet-v1.0, betanet-v1.0, voimain-v1.0, aramidmain-v1.0)"
+          },
+          "totalSupply": {
+            "maximum": 18446744073709552000,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Total supply of tokens",
+            "format": "int64"
+          },
+          "decimals": {
+            "maximum": 19,
+            "minimum": 0,
+            "type": "integer",
+            "description": "Number of decimal places for the token (0-19)",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for creating an ARC3 Fungible Token on Algorand",
+        "example": {
+          "TotalSupply": 10000000000,
+          "Decimals": 6,
+          "Name": "MyToken",
+          "UnitName": "MTKN",
+          "Url": "https://www.biatec.io",
+          "MetadataHash": "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=",
+          "DefaultFrozen": false,
+          "ManagerAddress": "ALGONAUTSPIUHDCX3SLFXOFDUKOE4VY36XV4JX2JHQTWJNKVBKPEBQACRY",
+          "ReserveAddress": "ALGONAUTSPIUHDCX3SLFXOFDUKOE4VY36XV4JX2JHQTWJNKVBKPEBQACRY",
+          "FreezeAddress": "",
+          "ClawbackAddress": "",
+          "Network": "testnet-v1.0"
+        }
+      },
+      "ASANonFungibleTokenDeploymentRequest": {
+        "required": [
+          "name",
+          "network",
+          "unitName"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": "string",
+            "description": "The name of the ARC3 token"
+          },
+          "unitName": {
+            "maxLength": 8,
+            "minLength": 0,
+            "type": "string",
+            "description": "The unit name (symbol) of the ARC3 token"
+          },
+          "url": {
+            "maxLength": 96,
+            "minLength": 0,
+            "type": "string",
+            "description": "Optional URL for token metadata",
+            "nullable": true
+          },
+          "metadataHash": {
+            "type": "string",
+            "description": "Optional metadata hash (32 bytes)",
+            "format": "byte",
+            "nullable": true
+          },
+          "defaultFrozen": {
+            "type": "boolean",
+            "description": "Whether the asset can be frozen by the freeze address"
+          },
+          "managerAddress": {
+            "type": "string",
+            "description": "Address that can manage the asset configuration (optional)\nIf not provided, the creator will be the manager",
+            "nullable": true
+          },
+          "reserveAddress": {
+            "type": "string",
+            "description": "Address that can reserve tokens (optional)",
+            "nullable": true
+          },
+          "freezeAddress": {
+            "type": "string",
+            "description": "Address that can freeze/unfreeze tokens (optional)",
+            "nullable": true
+          },
+          "clawbackAddress": {
+            "type": "string",
+            "description": "Address that can clawback tokens (optional)",
+            "nullable": true
+          },
+          "network": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Algorand network to deploy to (mainnet-v1.0, testnet-v1.0, betanet-v1.0, voimain-v1.0, aramidmain-v1.0)"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Decimals is equal to 0 for non-fungible tokens. Total quantity is equal to 1."
+      },
+      "ASATokenDeploymentResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message if deployment failed",
+            "nullable": true
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Status of the deployment"
+          },
+          "transactionId": {
+            "type": "string",
+            "description": "Transaction ID of the asset creation",
+            "nullable": true
+          },
+          "assetId": {
+            "type": "integer",
+            "description": "Asset ID of the created token",
+            "format": "int64",
+            "nullable": true
+          },
+          "creatorAddress": {
+            "type": "string",
+            "description": "Creator account address",
+            "nullable": true
+          },
+          "confirmedRound": {
+            "type": "integer",
+            "description": "Round number when the transaction was confirmed",
+            "format": "int64",
+            "nullable": true
+          },
+          "tokenInfo": {
+            "$ref": "#/components/schemas/Asset"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response model for ARC3 token deployment"
+      },
+      "Address": {
+        "type": "object",
+        "properties": {
+          "bytes": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true,
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Asset": {
+        "required": [
+          "index",
+          "params"
+        ],
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "params": {
+            "$ref": "#/components/schemas/AssetParams"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AssetParams": {
+        "type": "object",
+        "properties": {
+          "clawback": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "creator": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "decimals": {
+            "maximum": 19,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int64"
+          },
+          "defaultFrozen": {
+            "type": "boolean",
+            "default": false,
+            "nullable": true
+          },
+          "freeze": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "manager": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "metadataHash": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameB64": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "reserve": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "default": 0,
+            "nullable": true
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitNameB64": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "urlB64": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ERC20MintableTokenDeploymentRequest": {
+        "required": [
+          "cap",
+          "chainId",
+          "initialSupply",
+          "name",
+          "symbol"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The name of the ERC20 token"
+          },
+          "symbol": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The symbol of the ERC20 token (ticker)"
+          },
+          "initialSupply": {
+            "type": "number",
+            "description": "Initial supply of tokens (will be multiplied by decimals)",
+            "format": "double"
+          },
+          "decimals": {
+            "type": "integer",
+            "description": "Number of decimals for the token (typically 18)",
+            "format": "int32"
+          },
+          "initialSupplyReceiver": {
+            "type": "string",
+            "description": "Address that will receive the initial token supply. \nIf not specified, the deployer address will be used.",
+            "nullable": true
+          },
+          "chainId": {
+            "type": "integer",
+            "description": "EVM chain id",
+            "format": "int64"
+          },
+          "isMintable": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the item can be minted.",
+            "readOnly": true
+          },
+          "cap": {
+            "type": "number",
+            "description": "Cap of tokens (will be multiplied by decimals)",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a request to deploy an ERC-20 token with mintable functionality."
+      },
+      "ERC20PremintedTokenDeploymentRequest": {
+        "required": [
+          "chainId",
+          "initialSupply",
+          "name",
+          "symbol"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The name of the ERC20 token"
+          },
+          "symbol": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The symbol of the ERC20 token (ticker)"
+          },
+          "initialSupply": {
+            "type": "number",
+            "description": "Initial supply of tokens (will be multiplied by decimals)",
+            "format": "double"
+          },
+          "decimals": {
+            "type": "integer",
+            "description": "Number of decimals for the token (typically 18)",
+            "format": "int32"
+          },
+          "initialSupplyReceiver": {
+            "type": "string",
+            "description": "Address that will receive the initial token supply. \nIf not specified, the deployer address will be used.",
+            "nullable": true
+          },
+          "chainId": {
+            "type": "integer",
+            "description": "EVM chain id",
+            "format": "int64"
+          },
+          "isMintable": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the item can be minted.",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a request to deploy a non-mintable ERC20 token contract on the blockchain."
+      },
+      "EVMTokenDeploymentResponse": {
+        "required": [
+          "transactionHash"
+        ],
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message if deployment failed",
+            "nullable": true
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Status of the deployment"
+          },
+          "transactionHash": {
+            "type": "string",
+            "description": "Transaction hash of the deployment",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents the response of an Ethereum Virtual Machine (EVM) token deployment operation."
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      }
+    },
+    "securitySchemes": {
+      "oauth2": {
+        "type": "apiKey",
+        "description": "ARC-0014 Algorand authentication transaction",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
+  }
+}

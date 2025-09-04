@@ -379,8 +379,8 @@ namespace AlgorandGoogleDriveAccount.Controllers
                     fileId = file.Id,
                     fileName = file.Name,
                     fileSize = file.Size,
-                    createdTime = file.CreatedTime,
-                    modifiedTime = file.ModifiedTime,
+                    createdTime = file.CreatedTimeDateTimeOffset,
+                    modifiedTime = file.ModifiedTimeDateTimeOffset,
                     message = "Account file found. The issue might be with email case sensitivity or encryption key derivation.",
                     suggestedActions = new[]
                     {
@@ -479,7 +479,7 @@ namespace AlgorandGoogleDriveAccount.Controllers
         /// <returns>Token validation test result</returns>
         [AllowAnonymous]
         [HttpGet("test-token-validation")]
-        public async Task<ActionResult<object>> TestTokenValidation()
+        public ActionResult<object> TestTokenValidation()
         {
             try
             {

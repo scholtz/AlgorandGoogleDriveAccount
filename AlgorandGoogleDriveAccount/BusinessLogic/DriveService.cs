@@ -1,7 +1,6 @@
 using Algorand;
 using Algorand.Algod.Model.Transactions;
 using AlgorandGoogleDriveAccount.Repository;
-using Org.BouncyCastle.Crypto.Parameters;
 
 namespace AlgorandGoogleDriveAccount.BusinessLogic
 {
@@ -44,18 +43,19 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
                 var address = account.Address.EncodeAsString();
                 _logger?.LogInformation($"PasswordAccountSignMsig:{address}");
 
+                var pubKeys = signedTxObj.MSig.Subsigs.Select(s => s.key).ToList();
                 var msig = new MultisigAddress(
-                    signedTxObj.MSig.Version, 
-                    signedTxObj.MSig.Threshold, 
-                    new List<Ed25519PublicKeyParameters>(signedTxObj.MSig.Subsigs.Select(s => s.key)));
-                    
+                    signedTxObj.MSig.Version,
+                    signedTxObj.MSig.Threshold,
+                    pubKeys);
+
                 var signed = signedTxObj.Tx.Sign(msig, account);
                 return Algorand.Utils.Encoder.EncodeToMsgPackOrdered(signed);
             }
             catch (Exception exc)
             {
                 _logger?.LogDebug(exc, "Failed to decode signed transaction from MsgPack, trying as unsigned transaction.");
-                
+
                 try
                 {
                     // Try to decode as unsigned transaction
@@ -68,7 +68,7 @@ namespace AlgorandGoogleDriveAccount.BusinessLogic
                     var account = await _googleDriveRepository.LoadAccount(email, 0);
                     var address = account.Address.EncodeAsString();
                     _logger?.LogInformation($"PasswordAccountSign:{address}");
-                    
+
                     var signed = txObj.Sign(account);
                     return Algorand.Utils.Encoder.EncodeToMsgPackOrdered(signed);
                 }
